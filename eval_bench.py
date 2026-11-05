@@ -53,15 +53,6 @@ THUMBS_DIR.mkdir(exist_ok=True)
 FORENSICS_API_URL = "http://localhost:8001/v1/analyze"
 
 app = FastAPI(title="PINIT Hub Forensic 100-Image Benchmark")
-
-# When deployed on Render cloud, automatically serve the primary "Image Authenticity & AI Tampering Detection" project
-if os.environ.get("RENDER"):
-    try:
-        from main import app as _main_app
-        app = _main_app
-    except Exception as _e:
-        pass
-
 app.mount("/static/images", StaticFiles(directory=str(IMAGES_DIR)), name="eval_images")
 app.mount("/static/thumbs", StaticFiles(directory=str(THUMBS_DIR)), name="eval_thumbs")
 
@@ -1017,9 +1008,15 @@ async def serve_dashboard():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="PINIT Hub Forensic Evaluation Benchmark Server")
-    default_port = int(os.environ.get("PORT", 8085))
-    parser.add_argument("--port", type=int, default=default_port, help="Port to run benchmark server on")
+    parser.add_argument("--port", type=int, default=8085, help="Port to run benchmark server on (default 8085)")
     args = parser.parse_args()
 
-    port = int(os.environ.get("PORT", args.port))
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    print("\n" + "=" * 65)
+    print(">> PINIT Hub 100-Image Forensic Evaluation Benchmark Server")
+    print(f"-> Live Dashboard URL: http://localhost:{args.port}")
+    print("   (Access in your browser to evaluate images & export reports)")
+    print("   Forensics Engine: http://localhost:8001/v1/analyze")
+    print("   Data directory: eval_bench_data/")
+    print("=" * 65 + "\n")
+
+    uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="info")
