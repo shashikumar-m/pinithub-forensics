@@ -22,7 +22,7 @@ const envSchema = z.object({
   SUPABASE_STORAGE_BUCKET_DATASETS: z.string().default('datasets'),
   SUPABASE_STORAGE_BUCKET_MODELS: z.string().default('models'),
 
-  FORENSICS_SERVICE_URL: z.string().url().default('http://localhost:8001'),
+  FORENSICS_SERVICE_URL: z.string().default('http://localhost:8001').transform((val) => val.startsWith('http') ? val : `https://${val}`),
 
   MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(500).default(25),
   MAX_IMAGE_UPLOAD_BYTES: z.coerce.number().int().min(1024).max(500 * 1024 * 1024).default(25 * 1024 * 1024),

@@ -1,13 +1,67 @@
+databases:
+  - name: pinithub-db
+    databaseName: pinithub_forensics
+    user: postgres
+    plan: free
+    region: oregon
+
 services:
+  # 1. Python Forensic Core Service (FastAPI with PyTorch, OpenCV, ELA, PRNU, Crop, AI Segmentation)
   - type: web
     name: pinithub-forensics
     env: python
     region: oregon
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn eval_bench:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --app-dir services/forensics --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: AI_WEIGHTS_PATH
         value: models/ai_detector_v1.pth
+
+  # 2. Node.js Express API Gateway (Prisma, Auth, Orchestration, Ingestion)
+  - type: web
+    name: pinithub-api
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build:shared && npm --workspace @pinithub/api run db:generate && npm --workspace @pinithub/api run build
+    preDeployCommand: npx prisma db push --schema apps/api/prisma/schema.prisma
+    startCommand: node apps/api/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pinithub-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: pinithub-db
+          property: connectionString
+      - key: FORENSICS_SERVICE_URL
+        fromService:
+          type: web
+          name: pinithub-forensics
+          property: host
+      - key: CORS_ORIGINS
+        value: "*"
+
+  # 3. Web Frontend (React 18 + Vite UI)
+  - type: static
+    name: pinithub-web
+    buildCommand: npm install && npm run build:shared && npm --workspace @pinithub/web run build
+    staticPublishPath: apps/web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: pinithub-api
+          property: host
