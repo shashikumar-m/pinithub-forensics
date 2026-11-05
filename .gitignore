@@ -4,9 +4,11 @@ node_modules/
 .pnp.js
 
 # Build outputs
-dist/
+apps/api/dist/
+packages/*/dist/
 build/
 *.tsbuildinfo
+apps/web/dist/**/*.map
 
 # Environment files — NEVER commit real secrets
 .env

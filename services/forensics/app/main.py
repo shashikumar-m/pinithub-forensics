@@ -21,7 +21,9 @@ if not os.environ.get("AI_WEIGHTS_PATH"):
     if default_model.is_file():
         os.environ["AI_WEIGHTS_PATH"] = str(default_model)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from app.config import get_settings
@@ -193,19 +195,18 @@ async def inspect_single_detector(detector_name: str, req: InspectRequest):
     return result.to_dict()
 
 
-@app.get("/")
-async def root():
+@app.get("/api")
+async def api_info():
     return {
         "service": "pinithub-forensics",
-        "version": "0.4.0",
-        "phase": "Phase 4 — Image Registration & Reference Comparison",
+        "version": "1.0.0",
+        "phase": "Unified Forensic Pipeline & AI Tampering Detection",
         "detectors": ["ela", "noise_residual", "dct_analysis",
                        "jpeg_double_compression", "resampling",
                        "jpeg_grid", "copy_move", "metadata_inspector",
                        "registration", "crop_detector", "ai_detector"],
         "endpoints": ["/health", "/ready", "/detectors",
-                       "/v1/inspect/{detector_name}", "/v1/inspect/classical-pipeline",
-                       "/v1/compare", "/v1/crop-detect", "/v1/ai-detect"],
+                       "/v1/analyze", "/v1/analyses/direct", "/v1/compare", "/docs"],
     }
 
 
@@ -236,6 +237,38 @@ async def analyze_full(req: AnalyzeRequest):
         return sanitize_for_json(result)
     except Exception as e:
         logger.error("Unified analysis failed", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {type(e).__name__}")
+
+
+@app.post("/v1/analyses/direct")
+async def analyses_direct(
+    file: Optional[UploadFile] = File(None),
+    suspect: Optional[UploadFile] = File(None),
+    reference: Optional[UploadFile] = File(None),
+):
+    """
+    Direct upload analysis endpoint used by the React frontend.
+    Accepts multipart form data with image file and optional reference.
+    Runs complete unified forensic analysis and returns Section 10.1 result shape.
+    """
+    suspect_file = file or suspect
+    if not suspect_file:
+        raise HTTPException(status_code=400, detail="No suspect image file provided")
+    suspect_bytes = await suspect_file.read()
+    if len(suspect_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Empty suspect image file")
+
+    ref_bytes = None
+    if reference:
+        ref_bytes = await reference.read()
+        if len(ref_bytes) == 0:
+            ref_bytes = None
+
+    try:
+        result = run_unified_analysis(suspect_bytes, reference_bytes=ref_bytes)
+        return sanitize_for_json(result)
+    except Exception as e:
+        logger.error(f"Direct analysis failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Analysis failed: {type(e).__name__}")
 
 
@@ -575,3 +608,45 @@ async def investigate(req: InvestigateRequest):
         "textReport": text_report,
         "limitations": limitations,
     })
+
+
+# ---- Static Frontend SPA Serving (Single-Container Unified Deployment) ----
+def _resolve_web_dist() -> Optional[Path]:
+    candidates = [
+        Path(__file__).resolve().parents[3] / "apps" / "web" / "dist",
+        Path.cwd() / "apps" / "web" / "dist",
+        Path(__file__).resolve().parent / "dist",
+        Path.cwd() / "dist",
+    ]
+    for c in candidates:
+        if c.is_dir() and (c / "index.html").is_file():
+            return c
+    return None
+
+web_dist = _resolve_web_dist()
+if web_dist:
+    assets_dir = web_dist / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="web_assets")
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(web_dist / "index.html")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("v1/") or full_path in ("health", "ready", "detectors", "docs", "openapi.json", "api"):
+            raise HTTPException(status_code=404, detail="Not found")
+        target = web_dist / full_path
+        if target.is_file():
+            return FileResponse(target)
+        return FileResponse(web_dist / "index.html")
+else:
+    @app.get("/")
+    async def root_fallback():
+        return {
+            "service": "pinithub-forensics",
+            "version": "1.0.0",
+            "status": "backend-ready",
+            "message": "Frontend static assets not built. Run 'npm run build' or access /docs for API endpoints.",
+        }
