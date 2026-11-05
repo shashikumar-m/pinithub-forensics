@@ -5,7 +5,7 @@ export interface ForensicsAnalysisResult {
   status: string;
   mode: 'BLIND' | 'REFERENCE';
   verdict: 'EDITED' | 'NOT_EDITED' | 'INCONCLUSIVE';
-  classification?: 'AI_GENERATED' | 'AI_EDITED' | 'CAMERA_CAPTURED' | 'INCONCLUSIVE';
+  classification?: 'AI_GENERATED' | 'AI_EDITED' | 'CAMERA_CAPTURED' | 'DIGITALLY_ENHANCED' | 'INCONCLUSIVE';
   probability: number;
   dualScore?: {
     realPercentage: number;
@@ -547,11 +547,14 @@ export default function ForensicsDashboard() {
             const aiPct = result.dualScore?.aiPercentage ?? Number((result.probability * 100).toFixed(1));
             const realPct = result.dualScore?.realPercentage ?? Number(Math.max(0, 100 - aiPct).toFixed(1));
             const isAiGen = result.classification === 'AI_GENERATED';
-            const isAiEdit = result.classification === 'AI_EDITED' || result.verdict === 'EDITED';
-            const isCam = result.classification === 'CAMERA_CAPTURED' || (result.verdict === 'NOT_EDITED' && !isAiGen && !isAiEdit);
+            const isEnhanced = result.classification === 'DIGITALLY_ENHANCED';
+            const isAiEdit = !isAiGen && !isEnhanced && (result.classification === 'AI_EDITED' || (result.verdict === 'EDITED' && (result.regions?.length ?? 0) > 0));
+            const isCam = !isAiGen && !isEnhanced && !isAiEdit && (result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED');
 
             const finalTitle = isAiGen
               ? 'FULL AI GENERATED'
+              : isEnhanced
+              ? 'REAL PHOTO (DIGITALLY ENHANCED)'
               : isAiEdit
               ? 'AI EDITED / INPAINTED'
               : isCam
@@ -560,6 +563,8 @@ export default function ForensicsDashboard() {
 
             const finalBadge = isAiGen
               ? 'SYNTHETIC MEDIA'
+              : isEnhanced
+              ? 'AUTHENTIC PHOTO • POST-PROCESSED'
               : isAiEdit
               ? 'LOCAL TAMPERING DETECTED'
               : isCam
@@ -573,6 +578,8 @@ export default function ForensicsDashboard() {
                   className={`rounded-2xl sm:rounded-3xl border p-5 sm:p-7 shadow-sm transition-all ${
                     isAiGen
                       ? 'border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50'
+                      : isEnhanced
+                      ? 'border-sky-300 bg-gradient-to-br from-sky-50 via-white to-teal-50'
                       : isAiEdit
                       ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50'
                       : isCam
@@ -587,6 +594,8 @@ export default function ForensicsDashboard() {
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wider uppercase ${
                             isAiGen
                               ? 'bg-purple-200 text-purple-900'
+                              : isEnhanced
+                              ? 'bg-sky-200 text-sky-900'
                               : isAiEdit
                               ? 'bg-amber-200 text-amber-900'
                               : isCam
@@ -598,6 +607,8 @@ export default function ForensicsDashboard() {
                             className={`h-2.5 w-2.5 rounded-full animate-ping ${
                               isAiGen
                                 ? 'bg-purple-600'
+                                : isEnhanced
+                                ? 'bg-sky-600'
                                 : isAiEdit
                                 ? 'bg-amber-600'
                                 : isCam
@@ -619,9 +630,10 @@ export default function ForensicsDashboard() {
 
                       <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                         {isAiGen && 'Synthetic AI Media (Generated from Scratch)'}
+                        {isEnhanced && 'Real Camera Photograph (Digitally Enhanced / Stylized)'}
                         {isAiEdit && `Manipulated Image: Localized AI Edit in ~${result.affectedAreaPercentage || 0}% of Canvas`}
                         {isCam && 'Authentic Camera Capture (100% Genuine Physical Image)'}
-                        {!isAiGen && !isAiEdit && !isCam && 'Digital Non-Camera Media'}
+                        {!isAiGen && !isEnhanced && !isAiEdit && !isCam && 'Digital Non-Camera Media'}
                       </h2>
 
                       <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
@@ -688,7 +700,9 @@ export default function ForensicsDashboard() {
                           <span className="text-base font-bold">%</span>
                         </div>
                         <div className="mt-1 text-[10px] sm:text-[11px] font-medium opacity-80">
-                          {isAiEdit
+                          {isEnhanced
+                            ? 'Digital Filters, HDR, or Post-Processing'
+                            : isAiEdit
                             ? `~${result.affectedAreaPercentage || 0}% Local Inpainting Detected`
                             : isAiGen
                             ? 'Diffusion / GAN Generated'
@@ -829,7 +843,7 @@ export default function ForensicsDashboard() {
                       ))}
                     </div>
                   </div>
-                ) : isCam ? (
+                ) : isCam || isEnhanced ? (
                   <div className="rounded-2xl sm:rounded-3xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-5 sm:p-6 shadow-sm">
                     <div className="flex items-start sm:items-center gap-4">
                       <div className="rounded-2xl bg-emerald-100 border border-emerald-300 p-3 text-emerald-700 text-2xl shrink-0">
@@ -837,13 +851,15 @@ export default function ForensicsDashboard() {
                       </div>
                       <div>
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/80 px-2.5 py-0.5 text-xs font-black text-emerald-900 mb-1">
-                          <span>0 TAMPERED REGIONS DETECTED</span>
+                          <span>0 SPLICED / INPAINTED REGIONS DETECTED</span>
                         </div>
                         <h3 className="text-base sm:text-lg font-black text-slate-900">
-                          Clean Optical Scan Verified (100% Authentic Canvas)
+                          {isEnhanced ? 'Authentic Photographic Base Verified (Post-Processing Detected)' : 'Clean Optical Scan Verified (100% Authentic Canvas)'}
                         </h3>
                         <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                          All image quadrants match genuine camera sensor PRNU noise stationarity. No localized inpainting, splicing, copy-move duplication, or AI generative fill was found across any pixel region.
+                          {isEnhanced
+                            ? 'Authentic camera lens perspective and natural lighting physics verified. Digital enhancement (HDR tone-mapping, color grading, or sharpening) is present, but NO generative AI inpainting or splicing was detected.'
+                            : 'All image quadrants match genuine camera sensor PRNU noise stationarity. No localized inpainting, splicing, copy-move duplication, or AI generative fill was found across any pixel region.'}
                         </p>
                       </div>
                     </div>
