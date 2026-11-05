@@ -10,9 +10,10 @@
     "packages/shared"
   ],
   "scripts": {
+    "dev": "concurrently -k -n \"forensics,api,web\" -c \"magenta,blue,green\" \"npm run dev:forensics\" \"npm run dev:api\" \"npm run dev:web\"",
     "dev:web": "npm --workspace @pinithub/web run dev",
     "dev:api": "npm --workspace @pinithub/api run dev",
-    "dev:forensics": "cd services/forensics && .venv\\Scripts\\python -m uvicorn app.main:app --port 8001 --reload",
+    "dev:forensics": "python -m uvicorn app.main:app --app-dir services/forensics --port 8001 --reload",
     "detect": "services/forensics/.venv/Scripts/python pinithub_detect.py",
     "build:shared": "npm --workspace @pinithub/shared run build",
     "build:web": "npm --workspace @pinithub/web run build",
@@ -29,5 +30,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }
