@@ -629,11 +629,15 @@ export default function ForensicsDashboard() {
                       </div>
 
                       <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {isAiGen && 'Synthetic AI Media (Generated from Scratch)'}
-                        {isEnhanced && 'Real Camera Photograph (Digitally Enhanced / Stylized)'}
-                        {isAiEdit && `Manipulated Image: Localized AI Edit in ~${result.affectedAreaPercentage || 0}% of Canvas`}
-                        {isCam && 'Authentic Camera Capture (100% Genuine Physical Image)'}
-                        {!isAiGen && !isEnhanced && !isAiEdit && !isCam && 'Digital Non-Camera Media'}
+                        {isAiGen
+                          ? 'Synthetic AI Media (Generated from Scratch)'
+                          : isEnhanced
+                          ? 'Real Camera Photograph (Digitally Enhanced / Stylized)'
+                          : isAiEdit
+                          ? `Manipulated Image: Localized AI Edit in ~${result.affectedAreaPercentage || 0}% of Canvas`
+                          : isCam
+                          ? 'Authentic Camera Capture (100% Genuine Physical Image)'
+                          : 'Digital Non-Camera Media'}
                       </h2>
 
                       <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">

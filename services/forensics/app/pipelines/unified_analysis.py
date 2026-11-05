@@ -530,8 +530,7 @@ def run_unified_analysis(
     is_screenshot = (ai_details.get("image_level_label") == "DIGITAL_SCREENSHOT")
     has_ai_provenance = (
         ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
-        editing_software == "Canva" or
-        ai_details.get("status") == "AI_GENERATED"
+        editing_software == "Canva"
     )
 
     if is_screenshot:
@@ -560,13 +559,30 @@ def run_unified_analysis(
         # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
         # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
         # It is a digitally enhanced real photograph!
-        dct_score_val = float(all_detector_results.get("dct_analysis", {}).get("score") or 0.0)
+        ai_ev_strs = ai_evidence_notes or all_detector_results.get("ai", {}).get("details", {}).get("evidence", [])
+        ai_ev_joined = " ".join(ai_ev_strs)
+        has_natural_freq = (
+            "natural 1/f" in ai_ev_joined
+            or "freq: 0.0" in ai_ev_joined
+            or float(ai_details.get("freq_score") or 0.0) <= 0.10
+        )
+        import re
+        p50_match = re.search(r"p50:\s*([0-9.]+)", ai_ev_joined)
+        if p50_match:
+            try:
+                p50_num = float(p50_match.group(1))
+            except (ValueError, TypeError):
+                p50_num = 1.0
+        else:
+            p50_num = float(ai_details.get("p50") or 1.0)
+        has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
+
         is_digitally_enhanced = (
             not has_ai_provenance
             and not has_classical_corroboration
             and ela_score_val < 0.20
             and len(copy_points) == 0
-            and dct_score_val < 0.40
+            and (has_natural_freq and has_low_p50)
         )
         if is_digitally_enhanced:
             classification = "DIGITALLY_ENHANCED"
