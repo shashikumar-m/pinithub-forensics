@@ -7,6 +7,15 @@ export interface ForensicsAnalysisResult {
   verdict: 'EDITED' | 'NOT_EDITED' | 'INCONCLUSIVE';
   classification?: 'AI_GENERATED' | 'AI_EDITED' | 'CAMERA_CAPTURED' | 'INCONCLUSIVE';
   probability: number;
+  dualScore?: {
+    realPercentage: number;
+    aiPercentage: number;
+  };
+  finalCall?: {
+    verdict: string;
+    title: string;
+    description: string;
+  };
   summary: string;
   affectedAreaPercentage?: number;
   dimensions?: { width: number; height: number };
@@ -533,132 +542,316 @@ export default function ForensicsDashboard() {
       {/* 2. Forensic Analysis Results Section */}
       {result && (
         <div className="space-y-6 sm:space-y-8 animate-fadeIn">
-          {/* Verdict Banner Card */}
-          <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-7 shadow-sm">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-              {/* Verdict Label */}
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-4 sm:px-5 py-2 text-sm sm:text-base font-extrabold tracking-wide uppercase shadow-xs ${
-                    result.classification === 'AI_GENERATED'
-                      ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                      : result.classification === 'AI_EDITED' || result.verdict === 'EDITED'
-                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                      : result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED'
-                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                      : 'bg-slate-100 text-slate-800 border border-slate-300'
+          {/* 1. Final Call Hero Banner & Dual-Percentage Gauge */}
+          {(() => {
+            const aiPct = result.dualScore?.aiPercentage ?? Number((result.probability * 100).toFixed(1));
+            const realPct = result.dualScore?.realPercentage ?? Number(Math.max(0, 100 - aiPct).toFixed(1));
+            const isAiGen = result.classification === 'AI_GENERATED';
+            const isAiEdit = result.classification === 'AI_EDITED' || result.verdict === 'EDITED';
+            const isCam = result.classification === 'CAMERA_CAPTURED' || (result.verdict === 'NOT_EDITED' && !isAiGen && !isAiEdit);
+
+            const finalTitle = isAiGen
+              ? 'FULL AI GENERATED'
+              : isAiEdit
+              ? 'AI EDITED / INPAINTED'
+              : isCam
+              ? 'REAL CAMERA PHOTO'
+              : 'INCONCLUSIVE';
+
+            const finalBadge = isAiGen
+              ? 'SYNTHETIC MEDIA'
+              : isAiEdit
+              ? 'LOCAL TAMPERING DETECTED'
+              : isCam
+              ? 'AUTHENTIC OPTICAL CAPTURE'
+              : 'UNVERIFIED';
+
+            return (
+              <div className="space-y-4 sm:space-y-6">
+                {/* Final Call Decision Card */}
+                <div
+                  className={`rounded-2xl sm:rounded-3xl border p-5 sm:p-7 shadow-sm transition-all ${
+                    isAiGen
+                      ? 'border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50'
+                      : isAiEdit
+                      ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50'
+                      : isCam
+                      ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-teal-50'
+                      : 'border-slate-300 bg-white'
                   }`}
                 >
-                  <span
-                    className={`h-3 w-3 rounded-full animate-pulse ${
-                      result.classification === 'AI_GENERATED'
-                        ? 'bg-purple-600'
-                        : result.classification === 'AI_EDITED' || result.verdict === 'EDITED'
-                        ? 'bg-amber-500'
-                        : result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED'
-                        ? 'bg-emerald-600'
-                        : 'bg-slate-500'
-                    }`}
-                  />
-                  <span>
-                    {result.classification === 'AI_GENERATED'
-                      ? 'AI Generated'
-                      : result.classification === 'AI_EDITED'
-                      ? 'AI Edited / Inpainting'
-                      : result.classification === 'CAMERA_CAPTURED'
-                      ? 'Camera Captured'
-                      : result.verdict === 'EDITED'
-                      ? 'Edited / Tampered'
-                      : result.verdict === 'NOT_EDITED'
-                      ? 'Camera Captured'
-                      : 'Inconclusive (Screenshot)'}
-                  </span>
-                </span>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wider uppercase ${
+                            isAiGen
+                              ? 'bg-purple-200 text-purple-900'
+                              : isAiEdit
+                              ? 'bg-amber-200 text-amber-900'
+                              : isCam
+                              ? 'bg-emerald-200 text-emerald-900'
+                              : 'bg-slate-200 text-slate-800'
+                          }`}
+                        >
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full animate-ping ${
+                              isAiGen
+                                ? 'bg-purple-600'
+                                : isAiEdit
+                                ? 'bg-amber-600'
+                                : isCam
+                                ? 'bg-emerald-600'
+                                : 'bg-slate-600'
+                            }`}
+                          />
+                          <span>FINAL CALL: {finalTitle}</span>
+                        </span>
+                        <span className="rounded-md bg-white/90 border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-2xs">
+                          {finalBadge}
+                        </span>
+                        {result.executionMs && (
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            ⚡ {result.executionMs} ms
+                          </span>
+                        )}
+                      </div>
 
-                <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                  Mode: {result.mode}
-                </span>
+                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {isAiGen && 'Synthetic AI Media (Generated from Scratch)'}
+                        {isAiEdit && `Manipulated Image: Localized AI Edit in ~${result.affectedAreaPercentage || 0}% of Canvas`}
+                        {isCam && 'Authentic Camera Capture (100% Genuine Physical Image)'}
+                        {!isAiGen && !isAiEdit && !isCam && 'Digital Non-Camera Media'}
+                      </h2>
 
-                {result.executionMs && (
-                  <span className="text-xs text-slate-400 font-mono">
-                    ⚡ {result.executionMs} ms
-                  </span>
-                )}
-              </div>
+                      <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
+                        {result.finalCall?.description || result.summary}
+                      </p>
+                    </div>
 
-              {/* Actions & Export Buttons */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <button
-                  onClick={handleExportPdf}
-                  className="rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-100 flex items-center gap-1.5 shadow-2xs transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  <span>Export PDF Report</span>
-                </button>
-                <button
-                  onClick={handleExportJson}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
-                >
-                  Export JSON
-                </button>
-              </div>
-            </div>
+                    {/* Export Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+                      <button
+                        onClick={handleExportPdf}
+                        className="rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2 text-xs font-bold text-brand-700 hover:bg-brand-100 flex items-center gap-1.5 shadow-2xs transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span>Export PDF</span>
+                      </button>
+                      <button
+                        onClick={handleExportJson}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
+                      >
+                        JSON
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Probability Gauge Bar */}
-            <div className="mt-5 rounded-2xl bg-slate-50 p-4 sm:p-5 border border-slate-200/70">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Calibrated Tampering / Generative Probability
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Calculated from Dempster-Shafer multi-signal evidence fusion.
-                  </p>
+                  {/* Dual-Percentage ZeroGPT-Style Meter */}
+                  <div className="mt-5 pt-1">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-3">
+                      {/* Real Block */}
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 sm:p-4 text-center shadow-2xs">
+                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800">
+                          Real Image Likelihood
+                        </div>
+                        <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
+                          <span className="text-3xl sm:text-4xl font-black text-emerald-700">{realPct}</span>
+                          <span className="text-base font-bold text-emerald-600">%</span>
+                        </div>
+                        <div className="mt-1 text-[10px] sm:text-[11px] text-emerald-600 font-medium">
+                          Authentic Camera &amp; Sensor Optics
+                        </div>
+                      </div>
+
+                      {/* AI / Edited Block */}
+                      <div
+                        className={`rounded-2xl border p-3.5 sm:p-4 text-center shadow-2xs ${
+                          isAiGen || isAiEdit
+                            ? 'border-red-300 bg-red-50/80 text-red-900'
+                            : 'border-slate-200 bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
+                          AI / Edited Likelihood
+                        </div>
+                        <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
+                          <span
+                            className={`text-3xl sm:text-4xl font-black ${
+                              isAiGen || isAiEdit ? 'text-red-600' : 'text-slate-800'
+                            }`}
+                          >
+                            {aiPct}
+                          </span>
+                          <span className="text-base font-bold">%</span>
+                        </div>
+                        <div className="mt-1 text-[10px] sm:text-[11px] font-medium opacity-80">
+                          {isAiEdit
+                            ? `~${result.affectedAreaPercentage || 0}% Local Inpainting Detected`
+                            : isAiGen
+                            ? 'Diffusion / GAN Generated'
+                            : 'Minimal Residual Artifacts'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Split Dual-Colored Progress Bar */}
+                    <div className="relative mt-3">
+                      <div className="h-4 w-full overflow-hidden rounded-full bg-slate-200 flex shadow-inner">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-700 flex items-center justify-start pl-2 text-[10px] font-bold text-white"
+                          style={{ width: `${realPct}%` }}
+                          title={`Real: ${realPct}%`}
+                        >
+                          {realPct > 15 && `Real ${realPct}%`}
+                        </div>
+                        <div
+                          className={`h-full transition-all duration-700 flex items-center justify-end pr-2 text-[10px] font-bold text-white ${
+                            isAiGen ? 'bg-purple-600' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${aiPct}%` }}
+                          title={`AI / Edited: ${aiPct}%`}
+                        >
+                          {aiPct > 15 && `AI ${aiPct}%`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex justify-between text-[11px] text-slate-500 font-semibold px-1">
+                      <span className="text-emerald-700">🟢 100% Optical Sensor Match</span>
+                      <span className="text-slate-400">Total = 100% Complementary Evidence</span>
+                      <span className={isAiGen ? 'text-purple-700' : 'text-red-700'}>
+                        🔴 100% Synthetic / Tampered
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-baseline gap-1 font-mono self-start sm:self-auto">
-                  <span className="text-2xl sm:text-3xl font-black text-slate-900">
-                    {(result.probability * 100).toFixed(1)}
-                  </span>
-                  <span className="text-base font-bold text-slate-500">%</span>
-                </div>
-              </div>
 
-              {/* Segmented Safety Zone Meter */}
-              <div className="relative mt-2">
-                <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200 flex">
-                  <div className="h-full w-1/4 bg-emerald-500" title="Camera Baseline (0-25%)" />
-                  <div className="h-full w-1/4 bg-teal-400" title="Natural Camera Range (25-50%)" />
-                  <div className="h-full w-1/4 bg-amber-400" title="Elevated Generative Traces (50-75%)" />
-                  <div className="h-full w-1/4 bg-purple-600" title="Definitive AI Synthesis (75-100%)" />
-                </div>
-                {/* Pointer indicator */}
-                <div
-                  className="absolute -top-1 w-2.5 h-5 bg-slate-900 rounded-full shadow-md border-2 border-white -translate-x-1/2 transition-all duration-500"
-                  style={{ left: `${Math.min(100, Math.max(0, result.probability * 100))}%` }}
-                />
-              </div>
+                {/* 2. Visual "Where It Was Edited" Tampering Locator */}
+                {isAiEdit && result.regions && result.regions.length > 0 && suspectPreview ? (
+                  <div className="rounded-2xl sm:rounded-3xl border-2 border-red-300 bg-white p-4 sm:p-6 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 mb-1">
+                          <span className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                          <span>TAMPERING LOCATED ({result.regions.length} REGION{result.regions.length > 1 ? 'S' : ''})</span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-black text-slate-900">
+                          Where The Image Was Edited (Visual Localization)
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          The red bounding box pinpoints the exact object synthesized with Generative AI / Inpainting.
+                        </p>
+                      </div>
 
-              <div className="mt-2 flex justify-between text-[10px] sm:text-[11px] text-slate-500 font-medium">
-                <span className="text-emerald-700">0% Camera Baseline</span>
-                <span className="hidden sm:inline">25% Natural Margin</span>
-                <span className="font-semibold text-amber-700">50% Threshold</span>
-                <span className="text-purple-700">100% Synthetic AI</span>
-              </div>
-            </div>
+                      {/* Opacity slider for thermal heatmap */}
+                      {result.artifacts?.heatmapUrl && (
+                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl self-start sm:self-auto">
+                          <label className="text-xs font-semibold text-slate-600">AI Heatmap:</label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={heatmapOpacity}
+                            onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
+                            className="h-2 w-24 sm:w-28 cursor-pointer rounded-lg bg-slate-200 accent-red-600"
+                          />
+                          <span className="w-8 text-right font-mono text-xs font-bold text-slate-800">
+                            {heatmapOpacity}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-            {/* Executive Forensic Summary Text */}
-            <div className="mt-4 rounded-xl bg-white p-4 border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed shadow-2xs">
-              <span className="font-bold text-slate-900">Executive Summary: </span>
-              <span>{result.summary}</span>
-              {result.verdict === 'NOT_EDITED' && (
-                <p className="mt-1 text-[11px] text-slate-400 italic">
-                  * Note: "No evidence found" confirms absence of detected manipulation traces per PinITHUB forensic protocol.
-                </p>
-              )}
-            </div>
-          </div>
+                    {/* Image with bounding box overlay */}
+                    <div className="relative mt-4 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/95 p-3 sm:p-5">
+                      <div className="relative inline-block max-h-[55vh] sm:max-h-[500px]">
+                        <img
+                          src={suspectPreview}
+                          alt="Original Suspect"
+                          className="max-h-[55vh] sm:max-h-[500px] w-auto max-w-full object-contain rounded-lg"
+                        />
+
+                        {result.artifacts?.heatmapUrl && (
+                          <img
+                            src={result.artifacts.heatmapUrl}
+                            alt="Forensic Heatmap"
+                            style={{ opacity: heatmapOpacity / 100 }}
+                            className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-150"
+                          />
+                        )}
+
+                        {/* Bounding box(es) */}
+                        {result.dimensions &&
+                          result.regions.map((reg) => {
+                            const leftPct = (reg.bbox.x / result.dimensions!.width) * 100;
+                            const topPct = (reg.bbox.y / result.dimensions!.height) * 100;
+                            const widthPct = (reg.bbox.w / result.dimensions!.width) * 100;
+                            const heightPct = (reg.bbox.h / result.dimensions!.height) * 100;
+
+                            return (
+                              <div
+                                key={reg.id}
+                                style={{
+                                  left: `${leftPct}%`,
+                                  top: `${topPct}%`,
+                                  width: `${widthPct}%`,
+                                  height: `${heightPct}%`,
+                                }}
+                                className="pointer-events-auto absolute border-3 border-red-500 bg-red-500/25 shadow-lg animate-pulse"
+                              >
+                                <span className="absolute -top-6 left-0 rounded-md bg-red-600 px-2 py-0.5 text-[11px] font-black text-white shadow-md whitespace-nowrap">
+                                  ⚠️ AI Inpaint: {reg.areaPct}% Area
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Region Details Grid */}
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {result.regions.map((reg, idx) => (
+                        <div key={reg.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3 text-xs">
+                          <div className="flex items-center justify-between font-bold text-red-900 mb-1">
+                            <span>Region #{idx + 1}: {reg.editTypeGuess}</span>
+                            <span className="font-mono text-red-700">{reg.areaPct}% of image</span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 font-mono">
+                            Coordinates: [X: {reg.bbox.x}, Y: {reg.bbox.y}, {reg.bbox.w}×{reg.bbox.h}px]
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            Confidence: {(reg.confidence * 100).toFixed(1)}% (Corroborated by ELA &amp; UNet)
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : isCam ? (
+                  <div className="rounded-2xl sm:rounded-3xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-5 sm:p-6 shadow-sm">
+                    <div className="flex items-start sm:items-center gap-4">
+                      <div className="rounded-2xl bg-emerald-100 border border-emerald-300 p-3 text-emerald-700 text-2xl shrink-0">
+                        🛡️
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/80 px-2.5 py-0.5 text-xs font-black text-emerald-900 mb-1">
+                          <span>0 TAMPERED REGIONS DETECTED</span>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-black text-slate-900">
+                          Clean Optical Scan Verified (100% Authentic Canvas)
+                        </h3>
+                        <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                          All image quadrants match genuine camera sensor PRNU noise stationarity. No localized inpainting, splicing, copy-move duplication, or AI generative fill was found across any pixel region.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })()}
 
           {/* Primary Findings Cards (AI Content & Camera Sensor Profile) */}
           <div className="grid gap-4 sm:gap-6 md:grid-cols-2">

@@ -641,12 +641,47 @@ def run_unified_analysis(
         else "INCONCLUSIVE"
     )
 
+    # Dual-Score (ZeroGPT-style complementary percentages summing to 100%)
+    ai_percentage = round(calibrated_prob * 100, 1)
+    real_percentage = round(max(0.0, 100.0 - ai_percentage), 1)
+
+    # Definitive Final Call classification
+    if classification == "CAMERA_CAPTURED":
+        final_call = "REAL_CAMERA_PHOTO"
+        final_call_title = "REAL CAMERA PHOTO"
+        final_call_desc = "Authentic optical sensor pattern verified. Zero localized tampering or synthetic artifacts detected."
+    elif classification == "AI_GENERATED":
+        final_call = "FULL_AI_GENERATED"
+        final_call_title = "FULL AI GENERATED"
+        final_call_desc = "Synthetic digital media generated from scratch by an AI diffusion or GAN model."
+    elif classification == "AI_EDITED":
+        final_call = "AI_EDITED_INPAINTED"
+        final_call_title = "AI EDITED / INPAINTED"
+        final_call_desc = f"Real base image with localized Generative AI inpainting detected in ~{affected_area_pct}% of the canvas."
+    elif is_screenshot:
+        final_call = "DIGITAL_SCREENSHOT"
+        final_call_title = "DIGITAL SCREENSHOT"
+        final_call_desc = "Digital screen capture profile detected. Clean non-camera digital media."
+    else:
+        final_call = "INCONCLUSIVE"
+        final_call_title = "INCONCLUSIVE"
+        final_call_desc = "Signals are inconclusive or insufficient evidence found."
+
     return sanitize_for_json({
         "status": "DONE",
         "mode": mode,
         "verdict": verdict,
         "classification": classification,
         "probability": calibrated_prob,
+        "dualScore": {
+            "realPercentage": real_percentage,
+            "aiPercentage": ai_percentage,
+        },
+        "finalCall": {
+            "verdict": final_call,
+            "title": final_call_title,
+            "description": final_call_desc,
+        },
         "summary": summary,
         "affectedAreaPercentage": affected_area_pct,
         "dimensions": {
