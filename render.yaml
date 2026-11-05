@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pinithub-forensics
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn eval_bench:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: AI_WEIGHTS_PATH
+        value: models/ai_detector_v1.pth

@@ -1,0 +1,30 @@
+# PINITHUB Forensics — Python Service Dependencies
+# Python 3.11+
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.31.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# HTTP client (for job claiming against the Node API)
+httpx==0.27.2
+
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# Image processing
+Pillow==10.4.0
+numpy==2.1.1
+opencv-python-headless==4.10.0.84
+scipy==1.14.1
+
+# AI/ML — Phase 6
+torch==2.4.1
+torchvision==0.19.1
+segmentation-models-pytorch==0.3.4
+albumentations==1.4.18
+
+# Dataset utilities
+scikit-learn==1.5.2

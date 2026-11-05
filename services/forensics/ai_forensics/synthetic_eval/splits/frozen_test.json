@@ -1,0 +1,54 @@
+{
+  "dataset_version": "ai_forensics_v1",
+  "creation_timestamp": "2026-11-01T14:22:16Z",
+  "seed": 42,
+  "source_image_ids": [
+    "ai_generated/gen_0005.jpg",
+    "real/real_0011.jpg",
+    "real/real_0012.jpg",
+    "real/real_0016.jpg"
+  ],
+  "image_ids": [
+    "ai_edited/edited_0011_p0.jpg",
+    "ai_edited/edited_0011_p1.jpg",
+    "ai_edited/edited_0011_p2.jpg",
+    "ai_edited/edited_0011_p3.jpg",
+    "ai_edited/edited_0011_p4.jpg",
+    "ai_edited/edited_0011_p5.jpg",
+    "ai_edited/edited_0011_p6.jpg",
+    "ai_edited/edited_0012_p0.jpg",
+    "ai_edited/edited_0012_p1.jpg",
+    "ai_edited/edited_0012_p2.jpg",
+    "ai_edited/edited_0012_p3.jpg",
+    "ai_edited/edited_0012_p4.jpg",
+    "ai_edited/edited_0012_p5.jpg",
+    "ai_edited/edited_0012_p6.jpg",
+    "ai_edited/edited_0016_p0.jpg",
+    "ai_edited/edited_0016_p1.jpg",
+    "ai_edited/edited_0016_p2.jpg",
+    "ai_edited/edited_0016_p3.jpg",
+    "ai_edited/edited_0016_p4.jpg",
+    "ai_edited/edited_0016_p5.jpg",
+    "ai_edited/edited_0016_p6.jpg",
+    "ai_generated/gen_0005.jpg",
+    "real/real_0011.jpg",
+    "real/real_0012.jpg",
+    "real/real_0016.jpg"
+  ],
+  "entry_count": 25,
+  "manifest_sha256": "501b9c4be656eb28689f51622a851b04054ece0b8168579db48b262dbf6d32a5",
+  "label_counts": {
+    "REAL": 3,
+    "AI_EDITED_LOCAL": 21,
+    "AI_GENERATED": 1
+  },
+  "area_bucket_counts": {
+    "<0.5%": 3,
+    "0.5\u20131%": 3,
+    "1\u20132%": 3,
+    "2\u20135%": 3,
+    "5\u201310%": 3,
+    "10\u201325%": 3,
+    ">25%": 3
+  }
+}

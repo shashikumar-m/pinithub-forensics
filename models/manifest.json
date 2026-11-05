@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "name": "ai_detector",
+      "version": "1.0.0",
+      "architecture": "UNet",
+      "backbone": "efficientnet-b3",
+      "input_size": [
+        512,
+        512
+      ],
+      "classes": 1,
+      "weights_path": "models/ai_detector_v1.pth",
+      "sha256": "c4fd9f9f6c04859bd91d5c7fb7a308efd29f8550e5b5686333a628a787942664",
+      "license": "MIT",
+      "tag": "PROVEN",
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+# ==============================================================
+# PINITHUB FORENSICS — Local Development Docker Compose
+# --------------------------------------------------------------
+# Brings up PostgreSQL, the Node API, the Python forensic
+# service, and the frontend for local development.
+#
+# Usage:
+#   docker compose up --build
+#   docker compose up postgres   (just the database)
+# ==============================================================
+
+services:
+  # ---- PostgreSQL (Supabase-compatible) ----
+  postgres:
+    image: postgres:16-alpine
+    container_name: pinithub_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: pinithub_forensics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- Node.js API ----
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: pinithub_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/pinithub_forensics
+      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/pinithub_forensics
+      FORENSICS_SERVICE_URL: http://forensics:8001
+      LOG_LEVEL: info
+      MAX_UPLOAD_MB: "25"
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "4000:4000"
+
+  # ---- Python Forensic Service ----
+  forensics:
+    build:
+      context: ./services/forensics
+      dockerfile: Dockerfile
+    container_name: pinithub_forensics
+    restart: unless-stopped
+    environment:
+      FORENSICS_PORT: 8001
+      LOG_LEVEL: info
+    ports:
+      - "8001:8001"
+
+  # ---- Frontend (Vite preview build) ----
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    container_name: pinithub_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:4000
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:

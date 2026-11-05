@@ -1,0 +1,33 @@
+{
+  "name": "pinithub-forensics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PINITHUB FORENSICS — image forensics platform foundation",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace @pinithub/web run dev",
+    "dev:api": "npm --workspace @pinithub/api run dev",
+    "dev:forensics": "cd services/forensics && .venv\\Scripts\\python -m uvicorn app.main:app --port 8001 --reload",
+    "detect": "services/forensics/.venv/Scripts/python pinithub_detect.py",
+    "build:shared": "npm --workspace @pinithub/shared run build",
+    "build:web": "npm --workspace @pinithub/web run build",
+    "build:api": "npm --workspace @pinithub/api run build",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "test:web": "npm --workspace @pinithub/web run test",
+    "test:api": "npm --workspace @pinithub/api run test",
+    "test:shared": "npm --workspace @pinithub/shared run test",
+    "test": "npm run test:shared && npm run test:api && npm run test:web",
+    "db:generate": "npm --workspace @pinithub/api run db:generate",
+    "db:migrate": "npm --workspace @pinithub/api run db:migrate",
+    "db:push": "npm --workspace @pinithub/api run db:push",
+    "lint": "npm --workspaces --if-present run lint"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,413 @@
+{
+  "manifest_sha256": "73dbbe9d0851e9edfbe30cb7bb7eb0a9ae5e0c6cf6410dbba2bdc9340d5188c9",
+  "entries": [
+    {
+      "id": "source_0004_real",
+      "image": "images/source_0004_pristine.jpg",
+      "mask": null,
+      "label": "REAL",
+      "edit_type": "pristine",
+      "area_bucket": "NONE",
+      "edited_area_percentage": 0.0,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "original",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_ai_generated",
+      "image": "images/source_0004_ai_gen.jpg",
+      "mask": null,
+      "label": "AI_GENERATED",
+      "edit_type": "full_generation",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 100.0,
+      "source_image": "source_0004",
+      "generator": "flux_1_schnell",
+      "postprocessing": "original",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_generative_fill",
+      "image": "images/source_0004_generative_fill_jpeg_q85.jpg",
+      "mask": "masks/source_0004_generative_fill_mask.png",
+      "label": "AI_EDITED_LOCAL",
+      "edit_type": "generative_fill",
+      "area_bucket": "5\u201310%",
+      "edited_area_percentage": 5.946,
+      "source_image": "source_0004",
+      "generator": "midjourney_v6",
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_generative_inpaint",
+      "image": "images/source_0004_generative_inpaint_jpeg_q60.jpg",
+      "mask": "masks/source_0004_generative_inpaint_mask.png",
+      "label": "AI_EDITED_LOCAL",
+      "edit_type": "generative_inpaint",
+      "area_bucket": "10\u201325%",
+      "edited_area_percentage": 14.0759,
+      "source_image": "source_0004",
+      "generator": "inpaint_sd15",
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_splicing",
+      "image": "images/source_0004_splicing_whatsapp.jpg",
+      "mask": "masks/source_0004_splicing_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "splicing",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 35.0224,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "whatsapp",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_copy_move",
+      "image": "images/source_0004_copy_move_png.png",
+      "mask": "masks/source_0004_copy_move_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "copy_move",
+      "area_bucket": "<0.5%",
+      "edited_area_percentage": 0.2415,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_retouching",
+      "image": "images/source_0004_retouching_jpeg_q85.jpg",
+      "mask": "masks/source_0004_retouching_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "retouching",
+      "area_bucket": "0.5\u20131%",
+      "edited_area_percentage": 0.6084,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_text_insertion",
+      "image": "images/source_0004_text_insertion_jpeg_q60.jpg",
+      "mask": "masks/source_0004_text_insertion_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "text_insertion",
+      "area_bucket": "1\u20132%",
+      "edited_area_percentage": 1.1921,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_crop",
+      "image": "images/source_0004_crop_whatsapp.jpg",
+      "mask": "masks/source_0004_crop_mask.png",
+      "label": "CROPPED",
+      "edit_type": "crop",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 33.3481,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "whatsapp",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_perspective_warp",
+      "image": "images/source_0004_perspective_warp_png.png",
+      "mask": "masks/source_0004_perspective_warp_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "perspective_warp",
+      "area_bucket": "5\u201310%",
+      "edited_area_percentage": 7.584,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_color_grading",
+      "image": "images/source_0004_color_grading_jpeg_q85.jpg",
+      "mask": "masks/source_0004_color_grading_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "color_grading",
+      "area_bucket": "10\u201325%",
+      "edited_area_percentage": 18.129,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0004_recompression_pipeline",
+      "image": "images/source_0004_recompression_pipeline_jpeg_q60.jpg",
+      "mask": "masks/source_0004_recompression_pipeline_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "recompression_pipeline",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 35.0224,
+      "source_image": "source_0004",
+      "generator": null,
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_real",
+      "image": "images/source_0009_pristine.jpg",
+      "mask": null,
+      "label": "REAL",
+      "edit_type": "pristine",
+      "area_bucket": "NONE",
+      "edited_area_percentage": 0.0,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "original",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_ai_generated",
+      "image": "images/source_0009_ai_gen.jpg",
+      "mask": null,
+      "label": "AI_GENERATED",
+      "edit_type": "full_generation",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 100.0,
+      "source_image": "source_0009",
+      "generator": "flux_1_schnell",
+      "postprocessing": "original",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_generative_fill",
+      "image": "images/source_0009_generative_fill_jpeg_q85.jpg",
+      "mask": "masks/source_0009_generative_fill_mask.png",
+      "label": "AI_EDITED_LOCAL",
+      "edit_type": "generative_fill",
+      "area_bucket": "1\u20132%",
+      "edited_area_percentage": 1.5141,
+      "source_image": "source_0009",
+      "generator": "midjourney_v6",
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_generative_inpaint",
+      "image": "images/source_0009_generative_inpaint_jpeg_q60.jpg",
+      "mask": "masks/source_0009_generative_inpaint_mask.png",
+      "label": "AI_EDITED_LOCAL",
+      "edit_type": "generative_inpaint",
+      "area_bucket": "2\u20135%",
+      "edited_area_percentage": 3.5156,
+      "source_image": "source_0009",
+      "generator": "inpaint_sd15",
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_splicing",
+      "image": "images/source_0009_splicing_whatsapp.jpg",
+      "mask": "masks/source_0009_splicing_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "splicing",
+      "area_bucket": "5\u201310%",
+      "edited_area_percentage": 7.584,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "whatsapp",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_copy_move",
+      "image": "images/source_0009_copy_move_png.png",
+      "mask": "masks/source_0009_copy_move_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "copy_move",
+      "area_bucket": "10\u201325%",
+      "edited_area_percentage": 14.0759,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_retouching",
+      "image": "images/source_0009_retouching_jpeg_q85.jpg",
+      "mask": "masks/source_0009_retouching_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "retouching",
+      "area_bucket": ">25%",
+      "edited_area_percentage": 27.4899,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_text_insertion",
+      "image": "images/source_0009_text_insertion_jpeg_q60.jpg",
+      "mask": "masks/source_0009_text_insertion_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "text_insertion",
+      "area_bucket": "<0.5%",
+      "edited_area_percentage": 0.3208,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_crop",
+      "image": "images/source_0009_crop_whatsapp.jpg",
+      "mask": "masks/source_0009_crop_mask.png",
+      "label": "CROPPED",
+      "edit_type": "crop",
+      "area_bucket": "10\u201325%",
+      "edited_area_percentage": 16.449,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "whatsapp",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_perspective_warp",
+      "image": "images/source_0009_perspective_warp_png.png",
+      "mask": "masks/source_0009_perspective_warp_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "perspective_warp",
+      "area_bucket": "1\u20132%",
+      "edited_area_percentage": 1.1921,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_color_grading",
+      "image": "images/source_0009_color_grading_jpeg_q85.jpg",
+      "mask": "masks/source_0009_color_grading_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "color_grading",
+      "area_bucket": "2\u20135%",
+      "edited_area_percentage": 2.6958,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "jpeg_q85",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    },
+    {
+      "id": "source_0009_recompression_pipeline",
+      "image": "images/source_0009_recompression_pipeline_jpeg_q60.jpg",
+      "mask": "masks/source_0009_recompression_pipeline_mask.png",
+      "label": "CLASSICAL_EDITED",
+      "edit_type": "recompression_pipeline",
+      "area_bucket": "5\u201310%",
+      "edited_area_percentage": 5.946,
+      "source_image": "source_0009",
+      "generator": null,
+      "postprocessing": "jpeg_q60",
+      "dimensions": [
+        512,
+        512
+      ],
+      "split": "test"
+    }
+  ]
+}

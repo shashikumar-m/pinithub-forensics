@@ -1,0 +1,14 @@
+{
+  "best_val_metrics": {
+    "pixel_precision": 0.9973,
+    "pixel_recall": 0.9985,
+    "pixel_f1": 0.9979,
+    "iou": 0.9958,
+    "dice": 0.9979,
+    "epoch": 30,
+    "val_loss": 0.13478352557867765
+  },
+  "last_epoch": 30,
+  "model_name": "ai_localization_unet_efficientnet_b3",
+  "version": "v1.0.0"
+}

@@ -1,0 +1,31 @@
+# PINIT HUB Forensics & Evaluation Benchmark
+# Python 3.11+
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.31.0
+pydantic>=2.9.2
+pydantic-settings>=2.5.2
+python-multipart>=0.0.12
+
+# HTTP & Utilities
+requests>=2.31.0
+httpx>=0.27.2
+python-dotenv>=1.0.0
+
+# Image & Forensic Signal Processing
+Pillow>=10.4.0
+numpy>=1.26.0,<2.2.0
+opencv-python-headless>=4.10.0.84
+scipy>=1.14.0
+
+# Deep Learning (CPU-optimized for cloud deployment)
+torch>=2.2.0
+torchvision>=0.17.0
+segmentation-models-pytorch>=0.3.4
+albumentations>=1.4.0
+scikit-learn>=1.5.0
+
+# Benchmark Excel & Word Export
+openpyxl>=3.1.0
+python-docx>=1.1.0

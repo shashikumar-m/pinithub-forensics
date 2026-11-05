@@ -1,0 +1,14 @@
+{
+  "model_name": "ai_localization_unet_efficientnet_b3",
+  "version": "v1.0.0",
+  "backbone": "efficientnet-b3",
+  "img_size": 256,
+  "epochs": 1,
+  "batch_size": 4,
+  "learning_rate": 0.0001,
+  "seed": 42,
+  "device": "cpu",
+  "dataset_dir": "ai_forensics/synthetic_eval",
+  "training_samples": 127,
+  "val_samples": 18
+}

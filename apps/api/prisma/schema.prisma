@@ -1,0 +1,950 @@
+// ==============================================================
+// PINITHUB FORENSICS — Prisma Schema
+// --------------------------------------------------------------
+// PostgreSQL (Supabase-compatible) database models.
+//
+// Design principles:
+//   - Image binaries are NEVER stored in the database. Only
+//     metadata, identifiers, hashes, references, and analysis state.
+//   - UUIDs for all primary keys (non-sequential, hard to guess).
+//   - Owner-scoped access: every resource carries an ownerId.
+//   - Async job lifecycle: analyses -> analysis_jobs -> detector_outputs.
+// ==============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// Users
+// ============================================================
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String?  @unique
+  name      String?
+  role      UserRole @default(MEMBER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  images      Image[]
+  analyses    Analysis[]
+  auditEvents AuditEvent[] @relation("AuditActor")
+  consents    ConsentRecord[]
+  comparisons ImageComparison[]
+  investigations Investigation[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ============================================================
+// Consent Records — user consent before image processing
+// ============================================================
+model ConsentRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @map("owner_id") @db.Uuid
+  owner          User     @relation(fields: [ownerId], references: [id])
+  consentGiven   Boolean  @default(false) @map("consent_given")
+  consentVersion String   @map("consent_version")
+  policyVersion  String?  @map("policy_version")
+  sourceType     String   @map("source_type")
+  timestamp      DateTime @default(now())
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([ownerId])
+  @@map("consent_records")
+}
+
+// ============================================================
+// Images — metadata + storage references only (no binary)
+// ============================================================
+model Image {
+  id        String      @id @default(uuid()) @db.Uuid
+  ownerId   String      @db.Uuid
+  owner     User        @relation(fields: [ownerId], references: [id])
+  role      ImageRole
+  status    ImageStatus @default(RECEIVING)
+  source    ImageSource @default(FILE_UPLOAD)
+  originalFilename String @map("original_filename")
+  mimeType  String      @map("mime_type")
+  format    String?
+  sizeBytes  BigInt      @map("size_bytes")
+  sha256    String      @unique
+  storagePath String    @map("storage_path")
+  width     Int?
+  height    Int?
+  pixelCount Int?       @map("pixel_count")
+  colorMode String?     @map("color_mode")
+  captureTimestamp DateTime? @map("capture_timestamp")
+  datasetItemId String?  @map("dataset_item_id") @db.Uuid
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  metadata        ImageMetadata?
+  analysesAsImage Analysis[]        @relation("AnalysisImage")
+  analysesAsRef   Analysis[]        @relation("AnalysisReference")
+  datasetItem     DatasetItem?      @relation(fields: [datasetItemId], references: [id])
+  integrityChecks ImageIntegrityCheck[]
+  characteristics ImageCharacteristics?
+  derivedArtifacts DerivedArtifact[]
+  evidenceItems   ForensicEvidenceItem[]
+  comparisonsAsReference ImageComparison[] @relation("ComparisonReference")
+  comparisonsAsSuspect   ImageComparison[] @relation("ComparisonSuspect")
+
+  @@index([ownerId])
+  @@index([sha256])
+  @@index([role])
+  @@index([source])
+  @@map("images")
+}
+
+enum ImageRole {
+  ORIGINAL
+  SUSPECT
+  DATASET
+}
+
+enum ImageStatus {
+  RECEIVING
+  VALIDATING
+  PROTECTED
+  FAILED
+  DELETED
+}
+
+enum ImageSource {
+  CAMERA_CAPTURE
+  FILE_UPLOAD
+}
+
+// ============================================================
+// Image metadata / EXIF — parsed image metadata reference
+// ============================================================
+model ImageMetadata {
+  id              String    @id @default(uuid()) @db.Uuid
+  imageId         String    @unique @map("image_id") @db.Uuid
+  image           Image     @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  // --- Normalized metadata fields ---
+  cameraMake      String?   @map("camera_make")
+  cameraModel     String?   @map("camera_model")
+  lensMake        String?   @map("lens_make")
+  lensModel       String?   @map("lens_model")
+  focalLength     Float?    @map("focal_length")
+  aperture        Float?
+  shutterSpeed    String?   @map("shutter_speed")
+  iso             Int?
+  orientation     Int?
+  colorSpace      String?   @map("color_space")
+  colorProfile    String?   @map("color_profile")
+  software        String?
+  editingSoftware String?   @map("editing_software")
+
+  // --- Timestamps (kept distinct — do not assume they are equal) ---
+  capturedAt           DateTime? @map("captured_at")
+  capturedAtTimezone   String?   @map("captured_at_timezone")
+  metadataCreatedAt    DateTime? @map("metadata_created_at")
+  metadataModifiedAt   DateTime? @map("metadata_modified_at")
+
+  // --- GPS (stored only when relevant; never logged) ---
+  hasGps          Boolean   @default(false) @map("has_gps")
+  gpsLatitude     Float?    @map("gps_latitude")
+  gpsLongitude    Float?    @map("gps_longitude")
+  gpsAltitude     Float?    @map("gps_altitude")
+
+  // --- Raw / extended payloads ---
+  exifRaw         Json?     @map("exif_raw")
+  xmpRaw          Json?     @map("xmp_raw")
+  iptcRaw         Json?     @map("iptc_raw")
+  comments        Json?
+
+  // --- C2PA / Content Credentials ---
+  c2paStatus      String?   @map("c2pa_status")
+  c2paPayload     Json?     @map("c2pa_payload")
+
+  // --- Extraction metadata ---
+  extractorName   String    @default("metadata_inspector") @map("extractor_name")
+  extractorVersion String   @default("1.0.0") @map("extractor_version")
+  extractedAt     DateTime  @default(now()) @map("extracted_at")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("image_metadata")
+}
+
+// ============================================================
+// Analyses — a forensic investigation request
+// ============================================================
+model Analysis {
+  id               String         @id @default(uuid()) @db.Uuid
+  ownerId          String         @db.Uuid
+  owner            User           @relation(fields: [ownerId], references: [id])
+  imageId          String         @db.Uuid
+  image            Image           @relation("AnalysisImage", fields: [imageId], references: [id])
+  referenceImageId String?        @map("reference_image_id") @db.Uuid
+  referenceImage   Image?         @relation("AnalysisReference", fields: [referenceImageId], references: [id])
+  type             AnalysisType
+  status           AnalysisStatus @default(CREATED)
+  verdict          String?
+  confidence       Float?
+  error            String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  jobs            AnalysisJob[]
+  detectorOutputs DetectorOutput[]
+  regions         Region[]
+  aiDetectionResult AIDetectionResult?
+
+  @@index([ownerId])
+  @@index([imageId])
+  @@index([status])
+  @@index([type])
+  @@map("analyses")
+}
+
+enum AnalysisType {
+  AI_GENERATED_DETECTION
+  AI_EDIT_DETECTION
+  REGION_LOCALIZATION
+  ORIGINAL_VS_COPY
+  CROP_PERCENTAGE
+  TRAVELLED_COPY
+  METADATA_EXIF
+  COMPREHENSIVE
+}
+
+enum AnalysisStatus {
+  CREATED
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+  NOT_RUN
+}
+
+// ============================================================
+// Analysis Jobs — async work units executed by the Python service
+// Supports SKIP LOCKED style concurrent claiming.
+// ============================================================
+model AnalysisJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  analysisId  String    @map("analysis_id") @db.Uuid
+  analysis    Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  status      JobStatus @default(QUEUED)
+  pipeline    String
+  attempt     Int       @default(0)
+  maxAttempts Int       @default(3) @map("max_attempts")
+  claimedBy   String?   @map("claimed_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  startedAt   DateTime?  @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  error       Json?
+
+  @@index([status])
+  @@index([analysisId])
+  @@map("analysis_jobs")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+// ============================================================
+// Detector Outputs — raw result of a single detector
+// ============================================================
+model DetectorOutput {
+  id             String              @id @default(uuid()) @db.Uuid
+  analysisId     String              @map("analysis_id") @db.Uuid
+  analysis       Analysis            @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  detector       String
+  version        String
+  category       DetectorCategory
+  status         DetectorOutputStatus @default(NOT_RUN)
+  score          Float?
+  confidence     Float?
+  mapStoragePath String?              @map("map_storage_path")
+  details        Json?
+  executionTimeMs Int?               @map("execution_time_ms")
+  error          String?
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  regions Region[]
+
+  @@index([analysisId])
+  @@index([detector])
+  @@map("detector_outputs")
+}
+
+enum DetectorCategory {
+  AI_GENERATED
+  AI_EDITED
+  ELA
+  NOISE_RESIDUAL
+  DCT
+  JPEG_DOUBLE_COMPRESSION
+  COPY_MOVE
+  KEYPOINT_MATCH
+  CROP_PERCENTAGE
+  TRAVELLED_COPY
+  METADATA
+}
+
+enum DetectorOutputStatus {
+  NOT_RUN
+  RUNNING
+  DONE
+  FAILED
+  NOT_IMPLEMENTED
+}
+
+// ============================================================
+// Regions — localized areas of interest (with optional mask)
+// ============================================================
+model Region {
+  id                String     @id @default(uuid()) @db.Uuid
+  analysisId        String     @map("analysis_id") @db.Uuid
+  analysis          Analysis   @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  detectorOutputId  String     @map("detector_output_id") @db.Uuid
+  detectorOutput    DetectorOutput @relation(fields: [detectorOutputId], references: [id], onDelete: Cascade)
+  type              RegionType
+  bboxX             Int        @map("bbox_x")
+  bboxY             Int        @map("bbox_y")
+  bboxWidth         Int        @map("bbox_width")
+  bboxHeight        Int        @map("bbox_height")
+  score             Float
+  maskStoragePath   String?    @map("mask_storage_path")
+  description       String?
+  createdAt         DateTime   @default(now()) @map("created_at")
+
+  @@index([analysisId])
+  @@index([detectorOutputId])
+  @@map("regions")
+}
+
+enum RegionType {
+  AI_GENERATED
+  AI_EDITED
+  INPAINTED
+  COPY_MOVE
+  SPLICED
+  CROP_BOUNDARY
+  COMPRESSION_ARTIFACT
+  OTHER
+}
+
+// ============================================================
+// Model Versions — detector / model registry for reproducibility
+// ============================================================
+model ModelVersion {
+  id                  String       @id @default(uuid()) @db.Uuid
+  name                String
+  version             String
+  type                ModelType
+  status              ModelStatus  @default(DRAFT)
+  category            String
+  artifactStoragePath String?      @map("artifact_storage_path")
+  sha256              String?
+  description         String?
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  @@unique([name, version])
+  @@index([status])
+  @@map("model_versions")
+}
+
+enum ModelType {
+  CLASSIFIER
+  SEGMENTER
+  DETECTOR
+  COMPARATOR
+  CLASSICAL
+}
+
+enum ModelStatus {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+}
+
+// ============================================================
+// Datasets & Dataset Items — for evaluation and training
+// ============================================================
+model Dataset {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  items          DatasetItem[]
+  evaluationRuns EvaluationRun[]
+
+  @@map("datasets")
+}
+
+model DatasetItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  datasetId String   @map("dataset_id") @db.Uuid
+  dataset   Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  label     String?
+  groundTruth Json?   @map("ground_truth")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  images    Image[]
+
+  @@index([datasetId])
+  @@map("dataset_items")
+}
+
+// ============================================================
+// Evaluation Runs & Metrics — measuring detector performance
+// ============================================================
+model EvaluationRun {
+  id          String   @id @default(uuid()) @db.Uuid
+  datasetId   String   @map("dataset_id") @db.Uuid
+  dataset     Dataset  @relation(fields: [datasetId], references: [id])
+  modelVersionId String? @map("model_version_id") @db.Uuid
+  detector    String?
+  status      String   @default("PENDING")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  metrics EvaluationMetric[]
+
+  @@index([datasetId])
+  @@map("evaluation_runs")
+}
+
+model EvaluationMetric {
+  id              String  @id @default(uuid()) @db.Uuid
+  evaluationRunId String  @map("evaluation_run_id") @db.Uuid
+  evaluationRun   EvaluationRun @relation(fields: [evaluationRunId], references: [id], onDelete: Cascade)
+  metricName      String  @map("metric_name")
+  metricValue     Float   @map("metric_value")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([evaluationRunId])
+  @@map("evaluation_metrics")
+}
+
+// ============================================================
+// Audit Events — tamper-evident audit trail
+// (Hash chaining is a later-phase enhancement)
+// ============================================================
+model AuditEvent {
+  id           String        @id @default(uuid()) @db.Uuid
+  eventType     AuditEventType @map("event_type")
+  actorId       String?       @map("actor_id") @db.Uuid
+  actor         User?         @relation("AuditActor", fields: [actorId], references: [id])
+  resourceId    String?       @map("resource_id")
+  resourceType  String?       @map("resource_type")
+  payload       Json
+  previousHash  String?       @map("previous_hash")
+  hash          String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@index([resourceId])
+  @@index([eventType])
+  @@index([actorId])
+  @@map("audit_events")
+}
+
+enum AuditEventType {
+  IMAGE_UPLOADED
+  ANALYSIS_CREATED
+  JOB_QUEUED
+  JOB_CLAIMED
+  JOB_COMPLETED
+  JOB_FAILED
+  RECORD_SEALED
+  RECORD_ACCESSED
+  RECORD_DELETED
+  REPORT_GENERATED
+  METADATA_EXTRACTED
+  HASH_VERIFIED
+  HASH_MISMATCH
+  COMPARISON_CREATED
+  COMPARISON_COMPLETED
+  COMPARISON_FAILED
+  CROP_DETECTED
+  CROP_DETECTION_FAILED
+  AI_DETECTION_COMPLETED
+  AI_DETECTION_FAILED
+  TRAVEL_ANALYSIS_COMPLETED
+  TRAVEL_ANALYSIS_FAILED
+  INVESTIGATION_CREATED
+  INVESTIGATION_COMPLETED
+  REPORT_SEALED
+}
+
+// ============================================================
+// AI Detection Result — per analysis
+// ============================================================
+model AIDetectionResult {
+  id                  String   @id @default(uuid()) @db.Uuid
+  analysisId          String   @unique @map("analysis_id") @db.Uuid
+  analysis            Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  status              String   // AI_GENERATED | AI_EDITED_LOCAL | NO_AI_EVIDENCE | INCONCLUSIVE | UNAVAILABLE
+  imageLevelScore     Float?   @map("image_level_score")
+  imageLevelLabel     String?  @map("image_level_label")
+  editedAreaPct       Float?   @map("edited_area_pct")
+
+  // Model provenance
+  modelName           String?  @map("model_name")
+  modelVersion        String?  @map("model_version")
+  weightsHash         String?  @map("weights_hash")
+  calibrationStatus   String   @default("UNCALIBRATED") @map("calibration_status")
+
+  // Artifacts (stored in object storage, not in DB)
+  heatmapStoragePath  String?  @map("heatmap_storage_path")
+  maskStoragePath     String?  @map("mask_storage_path")
+
+  // Evidence and regions (JSON)
+  regions             Json?
+  evidence            Json?
+  warnings            Json?
+
+  executionMs         Int?     @map("execution_ms")
+  error               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("ai_detection_results")
+}
+
+
+// ============================================================
+// Image Comparison — reference vs suspect comparison job
+// ============================================================
+model ImageComparison {
+  id                  String            @id @default(uuid()) @db.Uuid
+  ownerId             String            @map("owner_id") @db.Uuid
+  owner               User              @relation(fields: [ownerId], references: [id])
+
+  referenceImageId    String            @map("reference_image_id") @db.Uuid
+  referenceImage      Image             @relation("ComparisonReference", fields: [referenceImageId], references: [id])
+
+  suspectImageId      String            @map("suspect_image_id") @db.Uuid
+  suspectImage        Image             @relation("ComparisonSuspect", fields: [suspectImageId], references: [id])
+
+  status              ComparisonStatus  @default(QUEUED)
+  registrationMethod  String?           @map("registration_method")
+  detectorUsed        String?           @map("detector_used")
+  detectorVersion     String?           @map("detector_version")
+
+  // --- Keypoint evidence ---
+  keypointsReference  Int?              @map("keypoints_reference")
+  keypointsSuspect    Int?              @map("keypoints_suspect")
+  rawMatches          Int?              @map("raw_matches")
+  goodMatches         Int?              @map("good_matches")
+  inlierCount         Int?              @map("inlier_count")
+  outlierCount        Int?              @map("outlier_count")
+  inlierRatio         Float?            @map("inlier_ratio")
+  reprojectionError   Float?            @map("reprojection_error")
+
+  // --- Homography ---
+  homographyMatrix    Json?             @map("homography_matrix")
+  projectedCorners    Json?             @map("projected_corners")
+  overlapRatio        Float?            @map("overlap_ratio")
+
+  // --- Photometric normalization ---
+  normalizationMethod String?           @map("normalization_method")
+
+  // --- Difference ---
+  meanAbsDiff         Float?            @map("mean_abs_diff")
+  ssimScore           Float?            @map("ssim_score")
+
+  // --- Execution ---
+  executionTimeMs     Int?              @map("execution_time_ms")
+
+  error               String?
+  warnings            Json?
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  differenceMap       ComparisonDiffMap?
+  regions             ComparisonRegion[]
+  cropDetection       CropDetection?
+  travelAnalysis      TravelAnalysis?
+  investigations      Investigation[]
+
+  @@index([ownerId])
+  @@index([referenceImageId])
+  @@index([suspectImageId])
+  @@index([status])
+  @@map("image_comparisons")
+}
+
+enum ComparisonStatus {
+  QUEUED
+  RUNNING
+  MATCHING
+  REGISTERING
+  COMPARING
+  COMPLETED
+  FAILED
+  NO_MATCH
+  INCONCLUSIVE
+}
+
+// ============================================================
+// Comparison Difference Map — spatial difference artifact
+// ============================================================
+model ComparisonDiffMap {
+  id                  String          @id @default(uuid()) @db.Uuid
+  comparisonId        String          @unique @map("comparison_id") @db.Uuid
+  comparison          ImageComparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  absDiffStoragePath  String?         @map("abs_diff_storage_path")
+  ssimMapStoragePath  String?         @map("ssim_map_storage_path")
+  overlapMaskPath     String?         @map("overlap_mask_path")
+  alignedSuspectPath  String?         @map("aligned_suspect_path")
+
+  meanAbsDiff         Float?          @map("mean_abs_diff")
+  medianAbsDiff       Float?          @map("median_abs_diff")
+  p95AbsDiff          Float?          @map("p95_abs_diff")
+  ssimScore           Float?          @map("ssim_score")
+
+  noiseFloor          Float?          @map("noise_floor")
+  diffMethod          String?         @map("diff_method")
+  normalizationMethod String?         @map("normalization_method")
+
+  createdAt           DateTime        @default(now()) @map("created_at")
+
+  @@map("comparison_diff_maps")
+}
+
+// ============================================================
+// Comparison Regions — candidate changed areas
+// ============================================================
+model ComparisonRegion {
+  id              String          @id @default(uuid()) @db.Uuid
+  comparisonId    String          @map("comparison_id") @db.Uuid
+  comparison      ImageComparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  bboxX           Int             @map("bbox_x")
+  bboxY           Int             @map("bbox_y")
+  bboxWidth       Int             @map("bbox_width")
+  bboxHeight      Int             @map("bbox_height")
+  pixelArea       Int?            @map("pixel_area")
+  areaPercent     Float?          @map("area_percent")
+  meanDiffScore   Float?          @map("mean_diff_score")
+  maskStoragePath String?         @map("mask_storage_path")
+  sourceEvidence  String?         @map("source_evidence")
+
+  @@index([comparisonId])
+  @@map("comparison_regions")
+}
+
+// ============================================================
+// Crop Detection — crop percentage result per comparison
+// ============================================================
+model CropDetection {
+  id              String          @id @default(uuid()) @db.Uuid
+  comparisonId    String          @unique @map("comparison_id") @db.Uuid
+  comparison      ImageComparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  status          String             // DETECTED | NO_CROP | NO_MATCH | INCONCLUSIVE | FAILED
+  cropPercentage  Float?           @map("crop_percentage")
+  keptPercentage  Float?           @map("kept_percentage")
+  originalAreaPixels Int          @map("original_area_pixels")
+  keptAreaPixels  Int?            @map("kept_area_pixels")
+  removedAreaPixels Int?          @map("removed_area_pixels")
+  cropPolygon     Json?           @map("crop_polygon")
+  boundingBox     Json?           @map("bounding_box")
+  confidence      Float?
+  reliability     String?
+  registrationQuality Json?       @map("registration_quality")
+  method          String?
+  detectorName    String?         @map("detector_name")
+  detectorVersion String?         @map("detector_version")
+  executionMs     Int?            @map("execution_ms")
+  warnings        Json?
+  error           String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  @@map("crop_detections")
+}
+
+// ============================================================
+// Travel Analysis — Phase 7
+// ============================================================
+model TravelAnalysis {
+  id              String          @id @default(uuid()) @db.Uuid
+  comparisonId    String          @unique @map("comparison_id") @db.Uuid
+  comparison      ImageComparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  status          String           // NO_SIGNIFICANT_CHANGE | TRANSFORMED_COPY | CONTENT_CHANGED | AI_CHANGE_DETECTED | NO_MATCH | INCONCLUSIVE
+  transformations Json?            // list of TravelTransformation strings
+  changes         Json?            // list of TravelChangeRegion
+  metadataChanges Json?            @map("metadata_changes")
+  cropResult      Json?            @map("crop_result")
+  aiDetectionResult Json?          @map("ai_detection_result")
+  registrationQuality Json?        @map("registration_quality")
+  evidence        Json?
+  warnings        Json?
+  analyzerVersion String?          @map("analyzer_version")
+  executionMs     Int?             @map("execution_ms")
+  error           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  @@map("travel_analyses")
+}
+
+// ============================================================
+// Image Integrity Check — SHA-256 re-verification results
+// ============================================================
+model ImageIntegrityCheck {
+  id            String            @id @default(uuid()) @db.Uuid
+  imageId       String            @map("image_id") @db.Uuid
+  image         Image             @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  status        IntegrityStatus
+  storedHash    String            @map("stored_hash")
+  computedHash  String?           @map("computed_hash")
+  checkedAt     DateTime          @default(now()) @map("checked_at")
+  note          String?
+
+  @@index([imageId])
+  @@index([status])
+  @@map("image_integrity_checks")
+}
+
+enum IntegrityStatus {
+  VERIFIED
+  MISMATCH
+  SKIPPED
+  ERROR
+}
+
+// ============================================================
+// Image Characteristics — technical properties for forensics
+// ============================================================
+model ImageCharacteristics {
+  id               String   @id @default(uuid()) @db.Uuid
+  imageId          String   @unique @map("image_id") @db.Uuid
+  image            Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  // --- Dimensions ---
+  width            Int?
+  height           Int?
+  aspectRatioW     Int?     @map("aspect_ratio_w")
+  aspectRatioH     Int?     @map("aspect_ratio_h")
+  pixelCount       Int?     @map("pixel_count")
+
+  // --- Color ---
+  channels         Int?
+  bitDepth         Int?     @map("bit_depth")
+  colorSpace       String?  @map("color_space")
+  hasAlpha         Boolean  @default(false) @map("has_alpha")
+
+  // --- JPEG specific ---
+  jpegProgressive  Boolean? @map("jpeg_progressive")
+  jpegSamplingFactors String? @map("jpeg_sampling_factors")
+  jpegQuantTables  Json?    @map("jpeg_quant_tables")
+  jpegMarkers      Json?    @map("jpeg_markers")
+  jpegQualityEstimate Int?  @map("jpeg_quality_estimate")
+  jpegQualityIsEstimate Boolean @default(true) @map("jpeg_quality_is_estimate")
+
+  // --- Extraction info ---
+  extractorName    String   @default("image_characteristics") @map("extractor_name")
+  extractorVersion String   @default("1.0.0") @map("extractor_version")
+  extractedAt      DateTime @default(now()) @map("extracted_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("image_characteristics")
+}
+
+// ============================================================
+// Derived Artifacts — images generated from the original
+//   for analysis purposes (original is NEVER modified)
+// ============================================================
+model DerivedArtifact {
+  id                  String   @id @default(uuid()) @db.Uuid
+  sourceImageId       String   @map("source_image_id") @db.Uuid
+  sourceImage         Image    @relation(fields: [sourceImageId], references: [id], onDelete: Cascade)
+  artifactType        String   @map("artifact_type")
+  transformationName  String   @map("transformation_name")
+  transformationVersion String @map("transformation_version")
+  storagePath         String   @map("storage_path")
+  mimeType            String   @map("mime_type")
+  sizeBytes           BigInt   @map("size_bytes")
+  sha256              String
+  note                String?
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([sourceImageId])
+  @@index([artifactType])
+  @@map("derived_artifacts")
+}
+
+// ============================================================
+// Forensic Evidence Items — atomic evidence entries per image
+// ============================================================
+model ForensicEvidenceItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  imageId          String   @map("image_id") @db.Uuid
+  image            Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  category         String
+  key              String
+  value            Json
+  valueType        String   @map("value_type")
+  source           String
+  detectorName     String?  @map("detector_name")
+  detectorVersion  String?  @map("detector_version")
+  confidence       Float?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([imageId])
+  @@index([category])
+  @@index([key])
+  @@map("forensic_evidence_items")
+}
+
+// ============================================================
+// Phase 8 — Investigation, Evidence Fusion, Report, Seal
+// ============================================================
+
+model Investigation {
+  id               String      @id @default(uuid()) @db.Uuid
+  ownerId          String      @map("owner_id") @db.Uuid
+  owner            User        @relation(fields: [ownerId], references: [id])
+  comparisonId     String?     @map("comparison_id") @db.Uuid
+  comparison       ImageComparison? @relation(fields: [comparisonId], references: [id])
+  referenceImageId String?     @map("reference_image_id") @db.Uuid
+  suspectImageId   String?     @map("suspect_image_id") @db.Uuid
+
+  status           String      @default("PENDING")
+  verdict          String?     // EDITED | NOT_EDITED | INCONCLUSIVE | NO_MATCH | ANALYSIS_UNAVAILABLE
+  confidenceStatus String?     @map("confidence_status")  // CALIBRATED | UNCALIBRATED | UNAVAILABLE
+  evidenceStrength String?     @map("evidence_strength")  // HIGH | MEDIUM | LOW | INSUFFICIENT
+  fusionVersion    String?     @map("fusion_version")
+  explanation      String?     @db.Text
+
+  executionMs      Int?        @map("execution_ms")
+  error            String?
+
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  evidenceItems    InvestigationEvidence[]
+  finalRegions     FinalRegion[]
+  assessments      FinalAssessment[]
+  reports          InvestigationReport[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("investigations")
+}
+
+model InvestigationEvidence {
+  id             String   @id @default(uuid()) @db.Uuid
+  investigationId String  @map("investigation_id") @db.Uuid
+  investigation  Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  category       String   // METADATA | REGISTRATION | JPEG | ELA | NOISE | DCT | COPY_MOVE | RESAMPLING | CROP | AI | TRAVEL | DIFFERENCE | OTHER
+  detector       String
+  version        String
+  status         String   // SUPPORTING | NEUTRAL | CONTRADICTING | UNAVAILABLE
+  score          Float?
+  reliability    Float?
+  description    String   @db.Text
+  rawResult      Json?    @map("raw_result")
+  evidenceGroup  String?  @map("evidence_group")
+  executionMs    Int?     @map("execution_ms")
+  warnings       Json?
+
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([investigationId])
+  @@index([category])
+  @@map("investigation_evidence")
+}
+
+model FinalRegion {
+  id               String   @id @default(uuid()) @db.Uuid
+  investigationId  String   @map("investigation_id") @db.Uuid
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  type             String   // CROP | AI_EDIT | OBJECT_ADDED | OBJECT_REMOVED | RETOUCH | LOCAL_CHANGE | TEXT_ADDED | STICKER_ADDED | UNKNOWN
+  bboxX            Int      @map("bbox_x")
+  bboxY            Int      @map("bbox_y")
+  bboxWidth        Int      @map("bbox_width")
+  bboxHeight       Int      @map("bbox_height")
+  polygon          Json?
+  areaPixels       Int      @map("area_pixels")
+  areaPercentage   Float    @map("area_percentage")
+  confidence       Float?
+  evidenceCount    Int      @default(1) @map("evidence_count")
+  sourceDetectors  Json?    @map("source_detectors")
+  maskArtifactPath String?  @map("mask_artifact_path")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([investigationId])
+  @@map("final_regions")
+}
+
+model FinalAssessment {
+  id               String   @id @default(uuid()) @db.Uuid
+  investigationId  String   @unique @map("investigation_id") @db.Uuid
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  verdict          String   // EDITED | NOT_EDITED | INCONCLUSIVE | NO_MATCH | ANALYSIS_UNAVAILABLE
+  probability      Float?
+  confidenceStatus String   @map("confidence_status")
+  evidenceStrength String   @map("evidence_strength")
+  reliability      Float?
+  explanation      String   @db.Text
+  evidenceIds      Json?    @map("evidence_ids")
+  warnings         Json?
+  fusionVersion    String?  @map("fusion_version")
+  calibrationMethod String? @map("calibration_method")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("final_assessments")
+}
+
+model InvestigationReport {
+  id               String   @id @default(uuid()) @db.Uuid
+  investigationId  String   @map("investigation_id") @db.Uuid
+  investigation    Investigation @relation(fields: [investigationId], references: [id], onDelete: Cascade)
+
+  schemaVersion    String   @map("schema_version") @default("1.0")
+  reportJson       Json?    @map("report_json")
+  reportHash       String?  @map("report_hash")
+  pdfStoragePath   String?  @map("pdf_storage_path")
+  isSealed         Boolean  @default(false) @map("is_sealed")
+
+  sealedAt         DateTime? @map("sealed_at")
+  sealedHash       String?   @map("sealed_hash")
+  previousSealHash String?   @map("previous_seal_hash")
+
+  modelVersions    Json?    @map("model_versions")
+  detectorVersions Json?    @map("detector_versions")
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([investigationId])
+  @@map("investigation_reports")
+}

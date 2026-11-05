@@ -1,0 +1,9 @@
+Edit area: 25.0%
+GT pixels: 16384 / 65536
+Precision: 1.0000
+Recall: 1.0000
+F1: 1.0000
+IoU: 1.0000
+
+Note: This is a SYNTHETIC visualization using simulated predictions.
+Real metrics require a trained model + labelled dataset.
