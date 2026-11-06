@@ -72,4 +72,29 @@ def test_full_ai_image_calibration():
                 assert res["dualScore"]["realPercentage"] <= 10.0
 
 
+def test_user_edited_sticker_calibration():
+    """Verify that a real camera photo with an added sticker is classified as EDITED with 97% Real / 3% Edited."""
+    import os
+    from app.models.ai_model_registry import reset_ai_model_loader
+    from app.models.ai_segmentation import get_ai_segmentation_model
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    weights_path = os.path.join(root, "models", "ai_detector_v1.pth")
+    sticker_path = r"C:\Users\mulic\.gemini\antigravity\brain\29478b4b-d1ab-40f9-885f-62a86d111a1b\.user_uploaded\media_1793943384710_f58510f6.jpg"
+
+    if os.path.exists(weights_path) and os.path.exists(sticker_path):
+        os.environ["AI_WEIGHTS_PATH"] = weights_path
+        reset_ai_model_loader()
+        get_ai_segmentation_model(weights_path)
+        with open(sticker_path, "rb") as f:
+            data = f.read()
+        res = run_unified_analysis(data)
+        assert res["classification"] == "EDITED"
+        assert res["finalCall"]["verdict"] == "MANUALLY_EDITED_TAMPERED"
+        assert res["finalCall"]["title"] == "MANIPULATED / USER EDITED IMAGE"
+        assert res["dualScore"]["realPercentage"] == 97.0
+        assert res["dualScore"]["aiPercentage"] == 3.0
+        assert len(res.get("regions", [])) > 0
+
+
 

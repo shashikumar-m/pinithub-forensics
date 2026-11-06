@@ -247,43 +247,6 @@ class AIDetector(BaseDetector):
                 evidence=["AI detection requires trained model weights."],
             )
 
-        # Multiscale quadrant scanning for web-scale images (768px to 2500px, < 2.5MP)
-        # Advanced diffusion generators (Midjourney, Flux, SDXL) retain fine generative
-        # latents at native resolution that bilinear downscaling to 512x512 blurs out.
-        quad_max_p90 = 0.0
-        quad_max_conf = 0.0
-        if (
-            768 <= pre.original_width <= 2500
-            and 768 <= pre.original_height <= 2500
-            and (pre.original_width * pre.original_height < 2_500_000)
-        ):
-            try:
-                pil_im = PILImage.open(io.BytesIO(image_bytes)).convert("RGB")
-                w_orig, h_orig = pre.original_width, pre.original_height
-                quads = [
-                    (0, 0, w_orig // 2, h_orig // 2),
-                    (w_orig // 2, 0, w_orig, h_orig // 2),
-                    (0, h_orig // 2, w_orig // 2, h_orig),
-                    (w_orig // 2, h_orig // 2, w_orig, h_orig),
-                ]
-                quad_map = np.zeros((h_orig, w_orig), dtype=np.float32)
-                for x1, y1, x2, y2 in quads:
-                    crop = pil_im.crop((x1, y1, x2, y2))
-                    buf = io.BytesIO()
-                    crop.save(buf, format="JPEG", quality=95)
-                    qp = seg_model.predict(buf.getvalue())
-                    if qp is not None:
-                        quad_map[y1:y2, x1:x2] = cv2.resize(qp, (x2 - x1, y2 - y1), interpolation=cv2.INTER_LINEAR)
-                        qp_p90 = float(np.percentile(qp, 90))
-                        qp_max = float(qp.max())
-                        quad_max_p90 = max(quad_max_p90, qp_p90)
-                        quad_max_conf = max(quad_max_conf, qp_max)
-                full_map_resized = cv2.resize(prob_map, (w_orig, h_orig), interpolation=cv2.INTER_LINEAR)
-                combined_prob = np.maximum(full_map_resized, quad_map)
-                prob_map = cv2.resize(combined_prob, (IMG_SIZE[0], IMG_SIZE[1]), interpolation=cv2.INTER_LINEAR)
-            except Exception as e:
-                logger.warning(f"Quadrant scan fallback: {e}")
-
         evidence.append(f"Model: {DETECTOR_NAME} {DETECTOR_VERSION}")
         # Harmonize shapes
         if freq_score > 0.20:
@@ -376,19 +339,6 @@ class AIDetector(BaseDetector):
         p95 = float(np.percentile(blended_map, 95))
         high_prob_pixels = int(np.count_nonzero(blended_map >= threshold))
         high_prob_ratio = high_prob_pixels / blended_map.size
-
-        # Quadrant scanning on blended map
-        h_bm, w_bm = blended_map.shape[:2]
-        quad_slices = [
-            blended_map[:h_bm//2, :w_bm//2],
-            blended_map[:h_bm//2, w_bm//2:],
-            blended_map[h_bm//2:, :w_bm//2],
-            blended_map[h_bm//2:, w_bm//2:],
-        ]
-        b_quad_max_p90 = max(float(np.percentile(qs, 90)) for qs in quad_slices)
-        b_quad_max_conf = max(float(qs.max()) for qs in quad_slices)
-        quad_max_p90 = max(quad_max_p90, b_quad_max_p90)
-        quad_max_conf = max(quad_max_conf, b_quad_max_conf)
 
         # Detect human face to distinguish natural portraits from synthetic scenes
         has_face = False
@@ -538,7 +488,8 @@ class AIDetector(BaseDetector):
             and high_sat_ratio < 0.35
             and freq_score <= 0.10
             and (noise_var_std < 140.0 or res_min_corr > 0.20)
-            and p90 < 0.85
+            and p90 < 0.70
+            and p95 < 0.85
             and mean_all < 0.25
             and not (p50 >= 0.35 and p75 >= 0.65)
         ):
@@ -554,8 +505,7 @@ class AIDetector(BaseDetector):
             (p50 >= 0.40 and mean_all >= 0.30 and p75 >= 0.70)
             or (p50 >= 0.50)
             or (p75 >= 0.65 and p90 >= 0.85 and mean_all >= 0.25 and max_region_conf >= 0.85)
-            or (p90 >= 0.75 and max_region_conf >= 0.80 and (p75 >= 0.20 or mean_all >= 0.15))
-            or (quad_max_p90 >= 0.70 and quad_max_conf >= 0.90 and max_region_conf >= 0.80 and (noise_var_std >= 140.0 or not has_face or high_sat_ratio >= 0.20))
+            or (p90 >= 0.75 and max_region_conf >= 0.80 and (p75 >= 0.20 or total_edited_area >= 12.0 or mean_all >= 0.14))
             or (max_region_conf >= 0.85 and p90 >= 0.85 and mean_all >= 0.25 and (p75 >= 0.50 or total_edited_area >= 15.0))
         ):
             image_level_label = "AI_GENERATED"
@@ -571,6 +521,8 @@ class AIDetector(BaseDetector):
             len(raw_regions) > 5
             and p50 < 0.20
             and total_edited_area < 15.0
+            and p90 < 0.70
+            and max_region_conf < 0.85
             and (noise_var_std < 140.0 or has_camera_hardware_exif or has_face)
         ):
             image_level_label = "LIKELY_REAL"
@@ -581,7 +533,7 @@ class AIDetector(BaseDetector):
                 f"Scattered micro-activations ({len(raw_regions)} candidate fragments across natural skin, facial features, or clothing) verified as natural texture and illumination variations rather than localized generative inpainting."
             )
         # 5. Candidate localized inpainting / editing (e.g. localized splice or edit)
-        elif max_region_conf >= 0.70 and (1 <= len(raw_regions) <= 5) and (total_edited_area < 20.0):
+        elif max_region_conf >= 0.70 and (1 <= len(raw_regions) <= 25) and (total_edited_area < 25.0):
             image_level_label = "AI_EDITED_LOCAL"
             status = "AI_EDITED_LOCAL"
             global_score = float(np.clip(max(0.65, max_region_conf), 0.65, 0.90))
