@@ -437,8 +437,24 @@ def run_unified_analysis(
     binary_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
     binary_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
 
-    # Suppress spurious regions on clean camera photos when no detector found edits
-    suppress_regions = (ai_status == "NO_AI_EVIDENCE" and not has_reference and len(copy_points) == 0)
+    # Extract classical detector metrics early for tampering evaluation
+    ela_score_val = float(all_detector_results.get("ela", {}).get("score") or 0.0)
+    noise_details = all_detector_results.get("noise_residual", {}).get("details", {})
+    noise_ev = noise_details.get("evidence", {})
+    noise_std_val = float(noise_ev.get("std_variance") or 0.0)
+    resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
+
+    # Check for manual user edits: spliced image, text added/overlaid, copy-move duplication, or editing software
+    has_manual_tamper_evidence = (
+        ela_score_val > 0.18
+        or len(copy_points) > 0
+        or (ela_score_val >= 0.08 and noise_std_val > 200.0)
+        or bool(editing_software and any(k in str(editing_software).lower() for k in ["photoshop", "gimp", "canva", "paint", "snapseed", "pixlr"]))
+    )
+
+    # Suppress spurious regions on clean camera photos when no detector found edits.
+    # NEVER suppress if classical detectors or metadata found evidence of manual tampering.
+    suppress_regions = (ai_status == "NO_AI_EVIDENCE" and not has_reference and not has_manual_tamper_evidence)
 
     total_pixels = h * w
     if suppress_regions:
@@ -599,8 +615,12 @@ def run_unified_analysis(
     elif crop_info and crop_info.get("status") == "DETECTED":
         classification = "AI_EDITED" if ai_status in ("AI_GENERATED", "AI_EDITED_LOCAL") else "EDITED"
         verdict = "EDITED"
-    elif len(regions) > 0 and verdict == "EDITED" and has_classical_corroboration:
-        classification = "AI_EDITED"
+    elif len(regions) > 0 and (verdict == "EDITED" or has_manual_tamper_evidence or has_classical_corroboration):
+        if ai_status in ("AI_GENERATED", "AI_EDITED_LOCAL") or ai_provenance in ("AI_EDITED", "AI_GENERATED"):
+            classification = "AI_EDITED"
+        else:
+            classification = "EDITED"
+        verdict = "EDITED"
     elif is_cam and len(regions) == 0:
         classification = "CAMERA_CAPTURED"
         verdict = "NOT_EDITED"
@@ -635,6 +655,8 @@ def run_unified_analysis(
         calibrated_prob = round(min(0.98, max(0.85, 0.70 + 0.28 * ai_score)), 2)
     elif classification == "AI_EDITED":
         calibrated_prob = round(min(0.98, max(0.65, 0.50 + 0.10 * len(regions) + 0.20 * ai_score)), 2)
+    elif classification == "EDITED":
+        calibrated_prob = round(min(0.95, max(0.70, 0.65 + 0.05 * len(regions) + 0.15 * ela_score_val)), 2)
     elif verdict == "EDITED" and crop_info and crop_info.get("status") == "DETECTED":
         calibrated_prob = 0.95
     elif assessment.probability is not None:
@@ -658,6 +680,8 @@ def run_unified_analysis(
             summary += f" Also found {len(regions)} localized content change region(s)."
     elif classification == "AI_EDITED":
         summary = f"Evidence of local editing in {len(regions)} region(s) (about {affected_area_pct}% of the image)."
+    elif classification == "EDITED":
+        summary = f"Evidence of localized manual tampering in {len(regions)} region(s) (about {affected_area_pct}% of the image). Spliced content, text addition, or copy-move detected."
     elif classification == "CAMERA_CAPTURED":
         summary = "Evidence consistent with genuine camera-captured photograph. No anomalous AI generator artifacts detected."
     elif is_screenshot:
@@ -674,6 +698,7 @@ def run_unified_analysis(
     ai_label = (
         "AI_GENERATED" if classification == "AI_GENERATED"
         else "AI_EDITED" if classification == "AI_EDITED"
+        else "MANUALLY_EDITED" if classification == "EDITED"
         else "DIGITALLY_ENHANCED" if classification == "DIGITALLY_ENHANCED"
         else "CONVENTIONAL" if classification == "CAMERA_CAPTURED"
         else "INCONCLUSIVE"
@@ -700,6 +725,10 @@ def run_unified_analysis(
         final_call = "AI_EDITED_INPAINTED"
         final_call_title = "AI EDITED / INPAINTED"
         final_call_desc = f"Real base image with localized Generative AI inpainting detected in ~{affected_area_pct}% of the canvas."
+    elif classification == "EDITED":
+        final_call = "MANUALLY_EDITED_TAMPERED"
+        final_call_title = "MANIPULATED / USER EDITED IMAGE"
+        final_call_desc = f"Localized manual editing detected in ~{affected_area_pct}% of the canvas (spliced image, text overlay, or copy-move modification)."
     elif is_screenshot:
         final_call = "DIGITAL_SCREENSHOT"
         final_call_title = "DIGITAL SCREENSHOT"

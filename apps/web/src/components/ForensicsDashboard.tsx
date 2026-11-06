@@ -5,7 +5,7 @@ export interface ForensicsAnalysisResult {
   status: string;
   mode: 'BLIND' | 'REFERENCE';
   verdict: 'EDITED' | 'NOT_EDITED' | 'INCONCLUSIVE';
-  classification?: 'AI_GENERATED' | 'AI_EDITED' | 'CAMERA_CAPTURED' | 'DIGITALLY_ENHANCED' | 'INCONCLUSIVE';
+  classification?: 'AI_GENERATED' | 'AI_EDITED' | 'CAMERA_CAPTURED' | 'DIGITALLY_ENHANCED' | 'EDITED' | 'INCONCLUSIVE';
   probability: number;
   dualScore?: {
     realPercentage: number;
@@ -548,13 +548,16 @@ export default function ForensicsDashboard() {
             const realPct = result.dualScore?.realPercentage ?? Number(Math.max(0, 100 - aiPct).toFixed(1));
             const isAiGen = result.classification === 'AI_GENERATED';
             const isEnhanced = result.classification === 'DIGITALLY_ENHANCED';
-            const isAiEdit = !isAiGen && !isEnhanced && (result.classification === 'AI_EDITED' || (result.verdict === 'EDITED' && (result.regions?.length ?? 0) > 0));
-            const isCam = !isAiGen && !isEnhanced && !isAiEdit && (result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED');
+            const isUserEdit = result.classification === 'EDITED';
+            const isAiEdit = !isAiGen && !isEnhanced && !isUserEdit && (result.classification === 'AI_EDITED' || (result.verdict === 'EDITED' && (result.regions?.length ?? 0) > 0));
+            const isCam = !isAiGen && !isEnhanced && !isUserEdit && !isAiEdit && (result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED');
 
             const finalTitle = isAiGen
               ? 'FULL AI GENERATED'
               : isEnhanced
               ? 'REAL PHOTO (DIGITALLY ENHANCED)'
+              : isUserEdit
+              ? 'MANIPULATED / USER EDITED'
               : isAiEdit
               ? 'AI EDITED / INPAINTED'
               : isCam
@@ -565,6 +568,8 @@ export default function ForensicsDashboard() {
               ? 'SYNTHETIC MEDIA'
               : isEnhanced
               ? 'AUTHENTIC PHOTO • POST-PROCESSED'
+              : isUserEdit
+              ? 'MANUAL EDIT • TEXT/IMAGE ADDED'
               : isAiEdit
               ? 'LOCAL TAMPERING DETECTED'
               : isCam
@@ -580,6 +585,8 @@ export default function ForensicsDashboard() {
                       ? 'border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50'
                       : isEnhanced
                       ? 'border-sky-300 bg-gradient-to-br from-sky-50 via-white to-teal-50'
+                      : isUserEdit
+                      ? 'border-rose-300 bg-gradient-to-br from-rose-50 via-white to-orange-50'
                       : isAiEdit
                       ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50'
                       : isCam
@@ -596,6 +603,8 @@ export default function ForensicsDashboard() {
                               ? 'bg-purple-200 text-purple-900'
                               : isEnhanced
                               ? 'bg-sky-200 text-sky-900'
+                              : isUserEdit
+                              ? 'bg-rose-200 text-rose-900'
                               : isAiEdit
                               ? 'bg-amber-200 text-amber-900'
                               : isCam
@@ -609,6 +618,8 @@ export default function ForensicsDashboard() {
                                 ? 'bg-purple-600'
                                 : isEnhanced
                                 ? 'bg-sky-600'
+                                : isUserEdit
+                                ? 'bg-rose-600'
                                 : isAiEdit
                                 ? 'bg-amber-600'
                                 : isCam
@@ -633,6 +644,8 @@ export default function ForensicsDashboard() {
                           ? 'Synthetic AI Media (Generated from Scratch)'
                           : isEnhanced
                           ? 'Real Camera Photograph (Digitally Enhanced / Stylized)'
+                          : isUserEdit
+                          ? `Manipulated Image: Local Content Edit / Text Added in ~${result.affectedAreaPercentage || 0}% of Canvas`
                           : isAiEdit
                           ? `Manipulated Image: Localized AI Edit in ~${result.affectedAreaPercentage || 0}% of Canvas`
                           : isCam
@@ -685,7 +698,7 @@ export default function ForensicsDashboard() {
                       {/* AI / Edited Block */}
                       <div
                         className={`rounded-2xl border p-3.5 sm:p-4 text-center shadow-2xs ${
-                          isAiGen || isAiEdit
+                          isAiGen || isAiEdit || isUserEdit
                             ? 'border-red-300 bg-red-50/80 text-red-900'
                             : 'border-slate-200 bg-slate-50 text-slate-700'
                         }`}
@@ -696,7 +709,7 @@ export default function ForensicsDashboard() {
                         <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
                           <span
                             className={`text-3xl sm:text-4xl font-black ${
-                              isAiGen || isAiEdit ? 'text-red-600' : 'text-slate-800'
+                              isAiGen || isAiEdit || isUserEdit ? 'text-red-600' : 'text-slate-800'
                             }`}
                           >
                             {aiPct}
@@ -706,6 +719,8 @@ export default function ForensicsDashboard() {
                         <div className="mt-1 text-[10px] sm:text-[11px] font-medium opacity-80">
                           {isEnhanced
                             ? 'Digital Filters, HDR, or Post-Processing'
+                            : isUserEdit
+                            ? `~${result.affectedAreaPercentage || 0}% Added Image / Text Overlay Detected`
                             : isAiEdit
                             ? `~${result.affectedAreaPercentage || 0}% Local Inpainting Detected`
                             : isAiGen
@@ -727,7 +742,7 @@ export default function ForensicsDashboard() {
                         </div>
                         <div
                           className={`h-full transition-all duration-700 flex items-center justify-end pr-2 text-[10px] font-bold text-white ${
-                            isAiGen ? 'bg-purple-600' : 'bg-red-500'
+                            isAiGen ? 'bg-purple-600' : isUserEdit ? 'bg-rose-600' : 'bg-red-500'
                           }`}
                           style={{ width: `${aiPct}%` }}
                           title={`AI / Edited: ${aiPct}%`}

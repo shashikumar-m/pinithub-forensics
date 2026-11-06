@@ -47,7 +47,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Test coverage
+# User test media
+Img_*.jpg
+*.jpg
+
 coverage/
 .nyc_output/
 

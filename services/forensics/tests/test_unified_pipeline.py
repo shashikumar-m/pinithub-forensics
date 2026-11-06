@@ -64,3 +64,18 @@ def test_digitally_enhanced_real_photo_calibration():
         assert len(res.get("regions", [])) == 0
 
 
+def test_full_ai_image_calibration():
+    """Verify that a high-resolution synthetic AI image without EXIF is classified as FULL_AI_GENERATED."""
+    import os
+    if os.path.exists("Img_030.jpg") and os.path.exists("models/ai_detector_v1.pth"):
+        os.environ["AI_WEIGHTS_PATH"] = "models/ai_detector_v1.pth"
+        with open("Img_030.jpg", "rb") as f:
+            data = f.read()
+        res = run_unified_analysis(data)
+        assert res["classification"] == "AI_GENERATED"
+        assert res["finalCall"]["verdict"] == "FULL_AI_GENERATED"
+        assert res["dualScore"]["aiPercentage"] >= 90.0
+        assert res["dualScore"]["realPercentage"] <= 10.0
+
+
+

@@ -538,6 +538,9 @@ class AIDetector(BaseDetector):
             and high_sat_ratio < 0.35
             and freq_score <= 0.10
             and (noise_var_std < 140.0 or res_min_corr > 0.20)
+            and p90 < 0.85
+            and mean_all < 0.25
+            and not (p50 >= 0.35 and p75 >= 0.65)
         ):
             image_level_label = "LIKELY_REAL"
             status = "NO_AI_EVIDENCE"
