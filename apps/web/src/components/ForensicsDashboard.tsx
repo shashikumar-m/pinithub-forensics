@@ -719,7 +719,11 @@ export default function ForensicsDashboard() {
                         }`}
                       >
                         <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
-                          AI / Edited Likelihood
+                          {isUserEdit
+                            ? 'Digitally Edited Likelihood'
+                            : isAiGen
+                            ? 'AI Generated Likelihood'
+                            : 'AI / Edited Likelihood'}
                         </div>
                         <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
                           <span
@@ -760,9 +764,9 @@ export default function ForensicsDashboard() {
                             isAiGen ? 'bg-purple-600' : isUserEdit ? 'bg-rose-600' : 'bg-red-500'
                           }`}
                           style={{ width: `${aiPct}%` }}
-                          title={`AI / Edited: ${aiPct}%`}
+                          title={`${isUserEdit ? 'Digitally Edited' : isAiGen ? 'AI Generated' : 'AI / Edited'}: ${aiPct}%`}
                         >
-                          {aiPct > 15 && `AI ${aiPct}%`}
+                          {aiPct > 15 && `${isUserEdit ? 'Edited' : 'AI'} ${aiPct}%`}
                         </div>
                       </div>
                     </div>
