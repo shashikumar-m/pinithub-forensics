@@ -824,7 +824,11 @@ def run_unified_analysis(
     elif classification == "AI_GENERATED":
         calibrated_prob = round(min(0.98, max(0.85, 0.70 + 0.28 * ai_score)), 2)
     elif classification == "AI_EDITED":
-        calibrated_prob = round(min(0.98, max(0.65, 0.50 + 0.10 * len(regions) + 0.20 * ai_score)), 2)
+        # Area-weighted calibration for localized generative inpainting:
+        # Authentic photographic base represents the real percentage;
+        # localized AI inpainting represents the AI likelihood.
+        inpaint_fraction = min(0.65, max(0.12, (affected_area_pct / 100.0) * 0.90 + 0.05))
+        calibrated_prob = round(inpaint_fraction, 2)
     elif classification == "EDITED":
         # ZeroGPT calibration for edited real camera photograph:
         # Authentic camera sensor optics represent ~97% Real,
@@ -852,7 +856,7 @@ def run_unified_analysis(
         if len(regions) > 0:
             summary += f" Also found {len(regions)} localized content change region(s)."
     elif classification == "AI_EDITED":
-        summary = f"Evidence of local editing in {len(regions)} region(s) (about {affected_area_pct}% of the image)."
+        summary = f"Real base photograph with localized AI generative inpainting / fill detected across ~{affected_area_pct}% of canvas ({len(regions)} region(s)). Authentic base image represents ~{100 - round(calibrated_prob * 100)}% of the frame."
     elif classification == "EDITED":
         summary = f"Evidence of localized manual tampering in {len(regions)} region(s) (about {affected_area_pct}% of the image). Spliced content, text addition, or copy-move detected."
     elif classification == "CAMERA_CAPTURED":
