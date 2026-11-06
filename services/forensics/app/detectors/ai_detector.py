@@ -284,9 +284,11 @@ class AIDetector(BaseDetector):
         # Color saturation analysis (Generative models often exhibit hypersaturated synthetic gamuts)
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         sat = hsv[:,:,1]
+        val = hsv[:,:,2]
         mean_sat = float(sat.mean())
         high_sat_ratio = float((sat > 160).mean())
         sat_gt_140 = float((sat > 140).mean())
+        white_paper_ratio = float(np.mean((val > 180) & (sat < 40)))
 
         # --- Multi-scale Sensor Noise Residual Field (PRNU consistency) ---
         # Physical camera sensors have stationary Poisson-Gaussian sensor noise (noise_var_std < 115).
@@ -519,6 +521,27 @@ class AIDetector(BaseDetector):
             regions = []
             evidence.append(
                 f"Physical camera optics and Bayer sensor noise verified (resolution: {pre.original_width}x{pre.original_height}, noise variance std: {noise_var_std:.1f}, Bayer residual correlation: {res_min_corr:.2f}). Repetitive fabric weave / textile patterns identified as non-generative."
+            )
+        # 3e. Genuine camera photograph of physical printed document / certificate / form / paper without EXIF
+        # Physical documents photographed with mobile cameras exhibit high paper background coverage (white_paper_ratio >= 0.65),
+        # natural 1/f optical frequency decay (freq_score <= 0.08), high Bayer CFA demosaicing correlation (res_min_corr >= 0.70),
+        # low canvas median neural activation (p50 < 0.20), non-square camera aspect ratio (< 0.95), and camera resolution (>= 0.8MP).
+        # High-contrast printed ink characters (typography, seals, logos) produce elevated localized p90 spikes on letters, which is physical printed text, not generative AI.
+        elif (
+            white_paper_ratio >= 0.65
+            and p50 < 0.20
+            and not (has_ai_provenance_meta or has_canva_meta)
+            and freq_score <= 0.08
+            and res_min_corr >= 0.70
+            and (pre.original_width * pre.original_height >= 800_000)
+            and (min(pre.original_width, pre.original_height) / max(pre.original_width, pre.original_height) < 0.95)
+        ):
+            image_level_label = "LIKELY_REAL"
+            status = "NO_AI_EVIDENCE"
+            global_score = 0.05
+            regions = []
+            evidence.append(
+                f"Authentic physical document photograph verified (resolution: {pre.original_width}x{pre.original_height}, document paper ratio: {white_paper_ratio*100:.1f}%, Bayer CFA correlation: {res_min_corr:.2f}). High-contrast printed ink typography and logos identified as authentic non-generative content."
             )
         # 4. Neural net detected synthetic features corroborated by pervasive full-image generation or salient subject generation
         elif (
