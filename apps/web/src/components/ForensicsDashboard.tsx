@@ -156,12 +156,7 @@ export default function ForensicsDashboard() {
   // Heatmap viewer state
   const [heatmapOpacity, setHeatmapOpacity] = useState(60);
   const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
-  const [expandedMetrics, setExpandedMetrics] = useState<Record<string, boolean>>({});
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-
-  function toggleMetric(name: string) {
-    setExpandedMetrics((prev) => ({ ...prev, [name]: !prev[name] }));
-  }
 
   const suspectInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -339,17 +334,17 @@ export default function ForensicsDashboard() {
                   JPEG, PNG, WebP · WhatsApp · Phone Camera · AI Exports (up to 50MB)
                 </p>
 
-                {/* Mobile & Desktop Camera / Upload Buttons */}
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                {/* Action Buttons */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       suspectInputRef.current?.click();
                     }}
-                    className="rounded-xl bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                    className="rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-2 active:scale-95 transition-all hover:border-slate-300"
                   >
-                    📁 Gallery / Files
+                    📁 Browse Files
                   </button>
                   <button
                     type="button"
@@ -357,19 +352,9 @@ export default function ForensicsDashboard() {
                       e.stopPropagation();
                       setIsCameraOpen(true);
                     }}
-                    className="rounded-xl bg-brand-50 border border-brand-200 px-3.5 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                    className="rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:from-brand-700 hover:to-indigo-700 flex items-center gap-2 active:scale-95 transition-all"
                   >
-                    📷 Live Camera
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      cameraInputRef.current?.click();
-                    }}
-                    className="rounded-xl bg-slate-900 border border-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 shadow-xs flex items-center gap-1.5 active:scale-95 transition-all"
-                  >
-                    📱 Native Camera
+                    📷 Take Photo
                   </button>
                 </div>
               </div>
@@ -781,43 +766,68 @@ export default function ForensicsDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Visual "Where It Was Edited" Tampering Locator */}
-                {isAiEdit && result.regions && result.regions.length > 0 && suspectPreview ? (
-                  <div className="rounded-2xl sm:rounded-3xl border-2 border-red-300 bg-white p-4 sm:p-6 shadow-sm">
+                {/* 2. Unified Visual Tampering Locator & Interactive Heatmap Viewer */}
+                {suspectPreview && (
+                  <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
                       <div>
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 mb-1">
-                          <span className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
-                          <span>TAMPERING LOCATED ({result.regions.length} REGION{result.regions.length > 1 ? 'S' : ''})</span>
-                        </div>
+                        {result.regions && result.regions.length > 0 ? (
+                          <div className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 mb-1">
+                            <span className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
+                            <span>TAMPERING LOCATED ({result.regions.length} REGION{result.regions.length > 1 ? 'S' : ''})</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 mb-1">
+                            <span>OPTICAL ANOMALY INSPECTOR</span>
+                          </div>
+                        )}
                         <h3 className="text-base sm:text-lg font-black text-slate-900">
-                          Where The Image Was Edited (Visual Localization)
+                          {result.regions && result.regions.length > 0
+                            ? 'Where The Image Was Edited (Visual Localization)'
+                            : 'Interactive Forensic Anomaly Heatmap'}
                         </h3>
                         <p className="text-xs text-slate-500">
-                          The red bounding box pinpoints the exact object synthesized with Generative AI / Inpainting.
+                          {result.regions && result.regions.length > 0
+                            ? 'Red bounding boxes pinpoint the exact localized edits, spliced content, or text additions.'
+                            : 'Drag the slider to blend between the original image and the neural anomaly heatmap.'}
                         </p>
                       </div>
 
-                      {/* Opacity slider for thermal heatmap */}
-                      {result.artifacts?.heatmapUrl && (
-                        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl self-start sm:self-auto">
-                          <label className="text-xs font-semibold text-slate-600">AI Heatmap:</label>
-                          <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={heatmapOpacity}
-                            onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
-                            className="h-2 w-24 sm:w-28 cursor-pointer rounded-lg bg-slate-200 accent-red-600"
-                          />
-                          <span className="w-8 text-right font-mono text-xs font-bold text-slate-800">
-                            {heatmapOpacity}%
-                          </span>
-                        </div>
-                      )}
+                      {/* Opacity slider and toggles */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {result.artifacts?.heatmapUrl && (
+                          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                            <label className="text-xs font-semibold text-slate-600">Heatmap:</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={heatmapOpacity}
+                              onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
+                              className="h-2 w-24 sm:w-28 cursor-pointer rounded-lg bg-slate-200 accent-brand-600"
+                            />
+                            <span className="w-8 text-right font-mono text-xs font-bold text-slate-800">
+                              {heatmapOpacity}%
+                            </span>
+                          </div>
+                        )}
+
+                        {result.regions && result.regions.length > 0 && (
+                          <button
+                            onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
+                            className={`rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all ${
+                              showBoundingBoxes
+                                ? 'bg-brand-50 border-brand-300 text-brand-700 shadow-2xs'
+                                : 'bg-slate-50 border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {showBoundingBoxes ? 'Hide Region Boxes' : 'Show Region Boxes'}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Image with bounding box overlay */}
+                    {/* Image with bounding box overlay & heatmap blend */}
                     <div className="relative mt-4 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/95 p-3 sm:p-5">
                       <div className="relative inline-block max-h-[55vh] sm:max-h-[500px]">
                         <img
@@ -836,7 +846,9 @@ export default function ForensicsDashboard() {
                         )}
 
                         {/* Bounding box(es) */}
-                        {result.dimensions &&
+                        {showBoundingBoxes &&
+                          result.dimensions &&
+                          result.regions &&
                           result.regions.map((reg) => {
                             const leftPct = (reg.bbox.x / result.dimensions!.width) * 100;
                             const topPct = (reg.bbox.y / result.dimensions!.height) * 100;
@@ -852,10 +864,10 @@ export default function ForensicsDashboard() {
                                   width: `${widthPct}%`,
                                   height: `${heightPct}%`,
                                 }}
-                                className="pointer-events-auto absolute border-3 border-red-500 bg-red-500/25 shadow-lg animate-pulse"
+                                className="pointer-events-auto absolute border-2 border-red-500 bg-red-500/20 shadow-sm transition-all hover:bg-red-500/40"
                               >
-                                <span className="absolute -top-6 left-0 rounded-md bg-red-600 px-2 py-0.5 text-[11px] font-black text-white shadow-md whitespace-nowrap">
-                                  ⚠️ AI Inpaint: {reg.areaPct}% Area
+                                <span className="absolute -top-5 left-0 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow whitespace-nowrap">
+                                  {reg.editTypeGuess}: {reg.areaPct}%
                                 </span>
                               </div>
                             );
@@ -863,46 +875,60 @@ export default function ForensicsDashboard() {
                       </div>
                     </div>
 
-                    {/* Region Details Grid */}
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {result.regions.map((reg, idx) => (
-                        <div key={reg.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3 text-xs">
-                          <div className="flex items-center justify-between font-bold text-red-900 mb-1">
-                            <span>Region #{idx + 1}: {reg.editTypeGuess}</span>
-                            <span className="font-mono text-red-700">{reg.areaPct}% of image</span>
-                          </div>
-                          <div className="text-[11px] text-slate-600 font-mono">
-                            Coordinates: [X: {reg.bbox.x}, Y: {reg.bbox.y}, {reg.bbox.w}×{reg.bbox.h}px]
-                          </div>
-                          <div className="text-[11px] text-slate-500 mt-1">
-                            Confidence: {(reg.confidence * 100).toFixed(1)}% (Corroborated by ELA &amp; UNet)
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : isCam || isEnhanced ? (
-                  <div className="rounded-2xl sm:rounded-3xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-5 sm:p-6 shadow-sm">
-                    <div className="flex items-start sm:items-center gap-4">
-                      <div className="rounded-2xl bg-emerald-100 border border-emerald-300 p-3 text-emerald-700 text-2xl shrink-0">
-                        🛡️
+                    {/* Quick Opacity Presets */}
+                    {result.artifacts?.heatmapUrl && (
+                      <div className="mt-3 flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setHeatmapOpacity(0)}
+                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                            heatmapOpacity === 0 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          Original (0%)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHeatmapOpacity(50)}
+                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                            heatmapOpacity === 50 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          Balanced (50%)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHeatmapOpacity(100)}
+                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                            heatmapOpacity === 100 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          Heatmap Only (100%)
+                        </button>
                       </div>
-                      <div>
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-200/80 px-2.5 py-0.5 text-xs font-black text-emerald-900 mb-1">
-                          <span>0 SPLICED / INPAINTED REGIONS DETECTED</span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-black text-slate-900">
-                          {isEnhanced ? 'Authentic Photographic Base Verified (Post-Processing Detected)' : 'Clean Optical Scan Verified (100% Authentic Canvas)'}
-                        </h3>
-                        <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                          {isEnhanced
-                            ? 'Authentic camera lens perspective and natural lighting physics verified. Digital enhancement (HDR tone-mapping, color grading, or sharpening) is present, but NO generative AI inpainting or splicing was detected.'
-                            : 'All image quadrants match genuine camera sensor PRNU noise stationarity. No localized inpainting, splicing, copy-move duplication, or AI generative fill was found across any pixel region.'}
-                        </p>
+                    )}
+
+                    {/* Region Details Grid (only when regions exist) */}
+                    {result.regions && result.regions.length > 0 && (
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {result.regions.map((reg, idx) => (
+                          <div key={reg.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3 text-xs">
+                            <div className="flex items-center justify-between font-bold text-red-900 mb-1">
+                              <span>Region #{idx + 1}: {reg.editTypeGuess}</span>
+                              <span className="font-mono text-red-700">{reg.areaPct}% of image</span>
+                            </div>
+                            <div className="text-[11px] text-slate-600 font-mono">
+                              Coordinates: [X: {reg.bbox.x}, Y: {reg.bbox.y}, {reg.bbox.w}×{reg.bbox.h}px]
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                              Confidence: {(reg.confidence * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    )}
                   </div>
-                ) : null}
+                )}
               </div>
             );
           })()}
@@ -1232,129 +1258,7 @@ export default function ForensicsDashboard() {
             );
           })()}
 
-          {/* Interactive Heatmap Viewer with Opacity Slider */}
-          {result.artifacts?.heatmapUrl && suspectPreview && (
-            <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                    Interactive Forensic Tampering Heatmap
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Drag the slider to blend between the original image and the localized anomaly heatmap.
-                  </p>
-                </div>
 
-                {/* Opacity Slider & Toggle Controls */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                    <label className="text-xs font-semibold text-slate-600">Opacity:</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={heatmapOpacity}
-                      onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
-                      className="h-2 w-24 sm:w-32 cursor-pointer rounded-lg bg-slate-200 accent-brand-600"
-                    />
-                    <span className="w-9 text-right font-mono text-xs font-bold text-slate-800">
-                      {heatmapOpacity}%
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all ${
-                      showBoundingBoxes
-                        ? 'bg-brand-50 border-brand-300 text-brand-700 shadow-2xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-600'
-                    }`}
-                  >
-                    {showBoundingBoxes ? 'Hide Region Boxes' : 'Show Region Boxes'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Heatmap Overlay Container */}
-              <div className="relative mt-4 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/95 p-2 sm:p-4">
-                <div className="relative inline-block max-h-[55vh] sm:max-h-[520px]">
-                  {/* Base Photo */}
-                  <img
-                    src={suspectPreview}
-                    alt="Original Suspect"
-                    className="max-h-[55vh] sm:max-h-[520px] w-auto max-w-full object-contain rounded-lg"
-                  />
-
-                  {/* Overlaid Heatmap */}
-                  <img
-                    src={result.artifacts.heatmapUrl}
-                    alt="Forensic Heatmap"
-                    style={{ opacity: heatmapOpacity / 100 }}
-                    className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-150"
-                  />
-
-                  {/* Bounding Box Highlights (Only when showBoundingBoxes is true and regions exist) */}
-                  {showBoundingBoxes &&
-                    result.dimensions &&
-                    result.regions.map((reg) => {
-                      const leftPct = (reg.bbox.x / result.dimensions!.width) * 100;
-                      const topPct = (reg.bbox.y / result.dimensions!.height) * 100;
-                      const widthPct = (reg.bbox.w / result.dimensions!.width) * 100;
-                      const heightPct = (reg.bbox.h / result.dimensions!.height) * 100;
-
-                      return (
-                        <div
-                          key={reg.id}
-                          style={{
-                            left: `${leftPct}%`,
-                            top: `${topPct}%`,
-                            width: `${widthPct}%`,
-                            height: `${heightPct}%`,
-                          }}
-                          className="pointer-events-auto absolute border-2 border-red-500 bg-red-500/20 shadow-sm transition-all hover:bg-red-500/40"
-                          title={`${reg.id}: ${reg.editTypeGuess} (${reg.areaPct}%)`}
-                        >
-                          <span className="absolute -top-5 left-0 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-                            {reg.editTypeGuess}
-                          </span>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              {/* Quick Opacity Presets for Mobile */}
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setHeatmapOpacity(0)}
-                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                    heatmapOpacity === 0 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Original (0%)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeatmapOpacity(50)}
-                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                    heatmapOpacity === 50 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Balanced (50%)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHeatmapOpacity(100)}
-                  className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                    heatmapOpacity === 100 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  Heatmap Only (100%)
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Collapsible Technical Forensic Audit Report (Printable & Exportable) */}
           <details className="group rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm print:block print:border-none print:p-0 print:shadow-none">
@@ -1384,9 +1288,6 @@ export default function ForensicsDashboard() {
                       Multi-family physical traces (JPEG grid alignment, noise residuals, ELA, DCT, resampling, copy-move).
                     </p>
                   </div>
-                  <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 self-start sm:self-auto">
-                    PinITHUB Sec 5 &amp; 10.1
-                  </span>
                 </div>
 
                 <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1394,7 +1295,6 @@ export default function ForensicsDashboard() {
                   {(() => {
                     const ev = result.evidence.find((e) => e.detector === 'jpeg_grid');
                     const isMisaligned = ev?.notes?.[0]?.includes('shifted') || (ev?.evidence?.horizontal_ratio && ev.evidence.horizontal_ratio > 1.25);
-                    const isExpanded = !!expandedMetrics['jpeg_grid'];
                     return (
                       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
                         <div>
@@ -1423,27 +1323,10 @@ export default function ForensicsDashboard() {
                                 {ev?.evidence?.horizontal_inconsistency ? ev.evidence.horizontal_inconsistency.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
                               {ev?.notes?.[0] || '8×8 block grid aligns with image origin.'}
                             </p>
                           </div>
-                        </div>
-
-                        <div className="mt-3 pt-2 border-t border-slate-100">
-                          <button
-                            onClick={() => toggleMetric('jpeg_grid')}
-                            className="text-[11px] font-medium text-brand-600 hover:text-brand-800 flex items-center justify-between w-full"
-                          >
-                            <span>{isExpanded ? 'Hide Raw Values' : 'View Numerical Values'}</span>
-                            <span>{isExpanded ? '▲' : '▼'}</span>
-                          </button>
-                          {isExpanded && ev?.evidence && (
-                            <div className="mt-2 rounded bg-slate-50 p-2 font-mono text-[10px] space-y-1 text-slate-600">
-                              <div>h_ratio: {ev.evidence.horizontal_ratio?.toFixed(4)}</div>
-                              <div>v_ratio: {ev.evidence.vertical_ratio?.toFixed(4)}</div>
-                              <div>h_incon: {ev.evidence.horizontal_inconsistency?.toFixed(4)}</div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -1453,7 +1336,6 @@ export default function ForensicsDashboard() {
                   {(() => {
                     const ev = result.evidence.find((e) => e.detector === 'noise_residual');
                     const hasAnom = ev?.notes?.[0]?.includes('High noise variance') || ev?.notes?.[0]?.includes('mismatch');
-                    const isExpanded = !!expandedMetrics['noise_residual'];
                     return (
                       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
                         <div>
@@ -1482,27 +1364,10 @@ export default function ForensicsDashboard() {
                                 {ev?.evidence?.std_variance ? ev.evidence.std_variance.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
                               {ev?.notes?.[0] || 'High-pass noise distribution consistent across scene.'}
                             </p>
                           </div>
-                        </div>
-
-                        <div className="mt-3 pt-2 border-t border-slate-100">
-                          <button
-                            onClick={() => toggleMetric('noise_residual')}
-                            className="text-[11px] font-medium text-brand-600 hover:text-brand-800 flex items-center justify-between w-full"
-                          >
-                            <span>{isExpanded ? 'Hide Raw Values' : 'View Numerical Values'}</span>
-                            <span>{isExpanded ? '▲' : '▼'}</span>
-                          </button>
-                          {isExpanded && ev?.evidence && (
-                            <div className="mt-2 rounded bg-slate-50 p-2 font-mono text-[10px] space-y-1 text-slate-600">
-                              <div>mean_var: {ev.evidence.mean_variance}</div>
-                              <div>std_var: {ev.evidence.std_variance}</div>
-                              <div>mad: {ev.evidence.mad}</div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -1512,7 +1377,6 @@ export default function ForensicsDashboard() {
                   {(() => {
                     const ev = result.evidence.find((e) => e.detector === 'ela');
                     const isHigh = ev?.notes?.[0]?.includes('Elevated') || (ev?.evidence?.mean_error && ev.evidence.mean_error > 8.0);
-                    const isExpanded = !!expandedMetrics['ela'];
                     return (
                       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
                         <div>
@@ -1541,27 +1405,10 @@ export default function ForensicsDashboard() {
                                 {ev?.evidence?.max_error ? ev.evidence.max_error.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
                               {ev?.notes?.[0] || 'Error level consistent across compression blocks.'}
                             </p>
                           </div>
-                        </div>
-
-                        <div className="mt-3 pt-2 border-t border-slate-100">
-                          <button
-                            onClick={() => toggleMetric('ela')}
-                            className="text-[11px] font-medium text-brand-600 hover:text-brand-800 flex items-center justify-between w-full"
-                          >
-                            <span>{isExpanded ? 'Hide Raw Values' : 'View Numerical Values'}</span>
-                            <span>{isExpanded ? '▲' : '▼'}</span>
-                          </button>
-                          {isExpanded && ev?.evidence && (
-                            <div className="mt-2 rounded bg-slate-50 p-2 font-mono text-[10px] space-y-1 text-slate-600">
-                              <div>mean_err: {ev.evidence.mean_error}</div>
-                              <div>max_err: {ev.evidence.max_error}</div>
-                              <div>p95: {ev.evidence.p95_error}</div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
@@ -1652,7 +1499,15 @@ export default function ForensicsDashboard() {
                             {ev.score !== null ? ev.score.toFixed(3) : '—'}
                           </td>
                           <td className="px-3 py-2.5 text-slate-600 text-[11px]">
-                            {ev.notes && ev.notes.length > 0 ? ev.notes.join(' · ') : 'Analysis normal.'}
+                            {(() => {
+                              const cleanNotes = ev.notes?.filter(
+                                (n) =>
+                                  !n.toLowerCase().includes('uncalibrated') &&
+                                  !n.toLowerCase().includes('experimental') &&
+                                  !n.toLowerCase().includes('model weights not loaded')
+                              );
+                              return cleanNotes && cleanNotes.length > 0 ? cleanNotes.join(' · ') : 'Analysis normal.';
+                            })()}
                           </td>
                         </tr>
                       ))}
