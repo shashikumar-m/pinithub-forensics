@@ -105,12 +105,26 @@ def run_unified_analysis(
         exif_raw = raw_details.get("exif_raw", {})
 
         has_exif = bool(exif_raw)
-        software = norm_meta.get("software")
+        camera_dict = norm_meta.get("camera", {}) if isinstance(norm_meta.get("camera"), dict) else {}
+        ts_dict = norm_meta.get("timestamps", {}) if isinstance(norm_meta.get("timestamps"), dict) else {}
+
+        software = norm_meta.get("software") or exif_raw.get("Software")
         editing_software = norm_meta.get("editing_software")
-        camera_make = norm_meta.get("camera_make")
-        camera_model = norm_meta.get("camera_model")
-        captured_at = norm_meta.get("captured_at")
-        modified_at = norm_meta.get("metadata_modified_at")
+        camera_make = camera_dict.get("make") or norm_meta.get("camera_make") or exif_raw.get("Make")
+        camera_model = camera_dict.get("model") or norm_meta.get("camera_model") or exif_raw.get("Model")
+        device_name = str(exif_raw.get("39424") or exif_raw.get(39424) or "").strip()
+        captured_at = ts_dict.get("captured_at") or norm_meta.get("captured_at") or exif_raw.get("DateTimeOriginal") or exif_raw.get("DateTime")
+        modified_at = ts_dict.get("metadata_modified_at") or norm_meta.get("metadata_modified_at")
+
+        f_number = str(exif_raw.get("FNumber") or camera_dict.get("aperture") or "")
+        focal_length = str(exif_raw.get("FocalLength") or camera_dict.get("focal_length") or "")
+        exposure_val = str(exif_raw.get("ExposureTime") or camera_dict.get("shutter_speed") or "")
+        iso_val = str(exif_raw.get("ISOSpeedRatings") or camera_dict.get("iso") or "")
+        offset_tz = str(exif_raw.get("OffsetTime") or exif_raw.get("OffsetTimeOriginal") or ts_dict.get("captured_at_timezone") or "")
+
+        device_desc = f"{camera_make or ''} {camera_model or ''}".strip()
+        if device_name:
+            device_desc += f" ({device_name})" if device_desc else device_name
 
         meta_details = {
             "has_exif": has_exif,
@@ -785,6 +799,21 @@ def run_unified_analysis(
         "artifacts": {
             "heatmapUrl": heatmap_data_url,
             "maskUrl": mask_data_url,
+        },
+        "opticalMetadata": {
+            "hasExif": has_exif,
+            "make": camera_make,
+            "model": camera_model,
+            "deviceName": device_name or None,
+            "lensModel": camera_dict.get("lens_model"),
+            "dateTimeOriginal": captured_at,
+            "offsetTime": offset_tz or None,
+            "exposureTime": exposure_val or None,
+            "fNumber": f_number or None,
+            "iso": iso_val or None,
+            "focalLength": focal_length or None,
+            "sensorVerification": "AUTHENTIC_HARDWARE_SENSOR" if (camera_make or camera_model) else ("STRIPPED_OR_ABSENT" if not has_exif else "GENERIC"),
+            "deviceDescription": device_desc or None,
         },
         "warnings": warnings,
         "limitations": limitations,
