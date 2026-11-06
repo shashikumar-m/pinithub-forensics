@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import LiveCameraModal from './LiveCameraModal';
+import ForensicWorkstationViewer from './ForensicWorkstationViewer';
 
 export interface ForensicsAnalysisResult {
   status: string;
@@ -158,9 +159,6 @@ export default function ForensicsDashboard() {
 
   const currentStage = PIPELINE_STAGES.find((s) => progress <= s.threshold) || PIPELINE_STAGES[PIPELINE_STAGES.length - 1];
 
-  // Heatmap viewer state
-  const [heatmapOpacity, setHeatmapOpacity] = useState(60);
-  const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const suspectInputRef = useRef<HTMLInputElement>(null);
@@ -771,168 +769,17 @@ export default function ForensicsDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Unified Visual Tampering Locator & Interactive Heatmap Viewer */}
+                {/* 2. Unified Forensic Inspection Workstation & Optical Canvas */}
                 {suspectPreview && (
-                  <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-                      <div>
-                        {result.regions && result.regions.length > 0 ? (
-                          <div className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-xs font-black text-red-800 mb-1">
-                            <span className="h-2 w-2 rounded-full bg-red-600 animate-ping" />
-                            <span>TAMPERING LOCATED ({result.regions.length} REGION{result.regions.length > 1 ? 'S' : ''})</span>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 mb-1">
-                            <span>OPTICAL ANOMALY INSPECTOR</span>
-                          </div>
-                        )}
-                        <h3 className="text-base sm:text-lg font-black text-slate-900">
-                          {result.regions && result.regions.length > 0
-                            ? 'Where The Image Was Edited (Visual Localization)'
-                            : 'Interactive Forensic Anomaly Heatmap'}
-                        </h3>
-                        <p className="text-xs text-slate-500">
-                          {result.regions && result.regions.length > 0
-                            ? 'Red bounding boxes pinpoint the exact localized edits, spliced content, or text additions.'
-                            : 'Drag the slider to blend between the original image and the neural anomaly heatmap.'}
-                        </p>
-                      </div>
-
-                      {/* Opacity slider and toggles */}
-                      <div className="flex flex-wrap items-center gap-3">
-                        {result.artifacts?.heatmapUrl && (
-                          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                            <label className="text-xs font-semibold text-slate-600">Heatmap:</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={heatmapOpacity}
-                              onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
-                              className="h-2 w-24 sm:w-28 cursor-pointer rounded-lg bg-slate-200 accent-brand-600"
-                            />
-                            <span className="w-8 text-right font-mono text-xs font-bold text-slate-800">
-                              {heatmapOpacity}%
-                            </span>
-                          </div>
-                        )}
-
-                        {result.regions && result.regions.length > 0 && (
-                          <button
-                            onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
-                            className={`rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all ${
-                              showBoundingBoxes
-                                ? 'bg-brand-50 border-brand-300 text-brand-700 shadow-2xs'
-                                : 'bg-slate-50 border-slate-200 text-slate-600'
-                            }`}
-                          >
-                            {showBoundingBoxes ? 'Hide Region Boxes' : 'Show Region Boxes'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Image with bounding box overlay & heatmap blend */}
-                    <div className="relative mt-4 flex items-center justify-center overflow-hidden rounded-xl bg-slate-900/95 p-3 sm:p-5">
-                      <div className="relative inline-block max-h-[55vh] sm:max-h-[500px]">
-                        <img
-                          src={suspectPreview}
-                          alt="Original Suspect"
-                          className="max-h-[55vh] sm:max-h-[500px] w-auto max-w-full object-contain rounded-lg"
-                        />
-
-                        {result.artifacts?.heatmapUrl && (
-                          <img
-                            src={result.artifacts.heatmapUrl}
-                            alt="Forensic Heatmap"
-                            style={{ opacity: heatmapOpacity / 100 }}
-                            className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-150"
-                          />
-                        )}
-
-                        {/* Bounding box(es) */}
-                        {showBoundingBoxes &&
-                          result.dimensions &&
-                          result.regions &&
-                          result.regions.map((reg) => {
-                            const leftPct = (reg.bbox.x / result.dimensions!.width) * 100;
-                            const topPct = (reg.bbox.y / result.dimensions!.height) * 100;
-                            const widthPct = (reg.bbox.w / result.dimensions!.width) * 100;
-                            const heightPct = (reg.bbox.h / result.dimensions!.height) * 100;
-
-                            return (
-                              <div
-                                key={reg.id}
-                                style={{
-                                  left: `${leftPct}%`,
-                                  top: `${topPct}%`,
-                                  width: `${widthPct}%`,
-                                  height: `${heightPct}%`,
-                                }}
-                                className="pointer-events-auto absolute border-2 border-red-500 bg-red-500/20 shadow-sm transition-all hover:bg-red-500/40"
-                              >
-                                <span className="absolute -top-5 left-0 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white shadow whitespace-nowrap">
-                                  {reg.editTypeGuess}: {reg.areaPct}%
-                                </span>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-
-                    {/* Quick Opacity Presets */}
-                    {result.artifacts?.heatmapUrl && (
-                      <div className="mt-3 flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setHeatmapOpacity(0)}
-                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                            heatmapOpacity === 0 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          Original (0%)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHeatmapOpacity(50)}
-                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                            heatmapOpacity === 50 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          Balanced (50%)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHeatmapOpacity(100)}
-                          className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
-                            heatmapOpacity === 100 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          Heatmap Only (100%)
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Region Details Grid (only when regions exist) */}
-                    {result.regions && result.regions.length > 0 && (
-                      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {result.regions.map((reg, idx) => (
-                          <div key={reg.id} className="rounded-xl border border-red-200 bg-red-50/50 p-3 text-xs">
-                            <div className="flex items-center justify-between font-bold text-red-900 mb-1">
-                              <span>Region #{idx + 1}: {reg.editTypeGuess}</span>
-                              <span className="font-mono text-red-700">{reg.areaPct}% of image</span>
-                            </div>
-                            <div className="text-[11px] text-slate-600 font-mono">
-                              Coordinates: [X: {reg.bbox.x}, Y: {reg.bbox.y}, {reg.bbox.w}×{reg.bbox.h}px]
-                            </div>
-                            <div className="text-[11px] text-slate-500 mt-1">
-                              Confidence: {(reg.confidence * 100).toFixed(1)}%
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <ForensicWorkstationViewer
+                    suspectPreview={suspectPreview}
+                    heatmapUrl={result.artifacts?.heatmapUrl}
+                    maskUrl={result.artifacts?.maskUrl}
+                    dimensions={result.dimensions}
+                    regions={result.regions}
+                    classification={result.classification}
+                    executionMs={result.executionMs}
+                  />
                 )}
               </div>
             );
