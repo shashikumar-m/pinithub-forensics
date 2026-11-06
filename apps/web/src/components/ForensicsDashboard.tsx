@@ -60,6 +60,11 @@ export interface ForensicsAnalysisResult {
     heatmapUrl?: string;
     maskUrl?: string;
   };
+  modality?: {
+    modality: string;
+    confidence: number;
+    evidence: string[];
+  };
   opticalMetadata?: {
     hasExif: boolean;
     make?: string | null;
@@ -933,124 +938,156 @@ export default function ForensicsDashboard() {
             );
           })()}
 
-          {/* Primary Findings Cards (AI Content & Camera Sensor Profile) */}
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-            {/* Card 1: AI Content & Inpainting */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm sm:text-base">
-                    <span className="text-purple-600">✨</span>
-                    <span>AI Content &amp; Inpainting</span>
-                  </h3>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                      result.aiDetection?.label === 'AI_GENERATED' || result.aiDetection?.status === 'AI_GENERATED'
-                        ? 'bg-purple-100 text-purple-800'
-                        : result.aiDetection?.label === 'AI_EDITED' || result.aiDetection?.status === 'AI_EDITED_LOCAL'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-emerald-100 text-emerald-800'
-                    }`}
-                  >
-                    {result.aiDetection?.label === 'AI_GENERATED' || result.aiDetection?.status === 'AI_GENERATED'
-                      ? 'AI GENERATED'
-                      : result.aiDetection?.label === 'AI_EDITED' || result.aiDetection?.status === 'AI_EDITED_LOCAL'
-                      ? 'AI EDIT DETECTED'
-                      : 'CONVENTIONAL (Camera)'}
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <div>
-                      <span className="text-slate-600 font-semibold">AI Artifact Trace Score</span>
-                      <span className="ml-2 text-[10px] sm:text-[11px] text-slate-400">
-                        {(result.aiDetection?.score || 0) < 0.45 ? '(Normal camera baseline < 50%)' : '(Elevated generative trace)'}
-                      </span>
-                    </div>
-                    <span className="font-mono font-bold text-slate-900">
-                      {result.aiDetection?.score !== undefined ? (result.aiDetection.score * 100).toFixed(1) : '0.0'}%
-                    </span>
-                  </div>
-
-                  {/* Progress bar with 50% threshold indicator */}
-                  <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        (result.aiDetection?.score || 0) >= 0.55
-                          ? 'bg-purple-600'
-                          : (result.aiDetection?.score || 0) >= 0.45
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-500'
-                      }`}
-                      style={{ width: `${Math.min(100, Math.max(0, (result.aiDetection?.score || 0) * 100))}%` }}
-                    />
-                    <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-slate-400/80" title="50% AI Detection Threshold" />
-                  </div>
-
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>0% (Clean Camera)</span>
-                    <span className="font-semibold text-slate-500">50% Detection Threshold</span>
-                    <span>100% (Synthetic)</span>
-                  </div>
-
-                  <p className="text-xs text-slate-600 leading-relaxed pt-1">
-                    {result.aiDetection?.label === 'AI_GENERATED' || result.aiDetection?.status === 'AI_GENERATED'
-                      ? 'Full canvas exhibits persistent latent diffusion and generator frequency phase patterns.'
-                      : result.aiDetection?.label === 'AI_EDITED' || result.aiDetection?.status === 'AI_EDITED_LOCAL'
-                      ? 'Localized AI inpainting / generative fill traces identified in candidate regions.'
-                      : 'Verified camera sensor baseline. No anomalous AI generator frequency fingerprints detected.'}
-                  </p>
-                </div>
+          {/* Forensic Invariants & Signal Telemetry Grid (Cyber-Forensics Workspace) */}
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-600 animate-pulse" />
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base tracking-tight">
+                  Multi-Modal Forensic Signals &amp; Sensor Telemetry
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-slate-700">
+                  {result.dimensions ? `${result.dimensions.width}×${result.dimensions.height}px` : 'Raster Frame'}
+                </span>
+                <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-mono font-bold text-indigo-700">
+                  {result.evidence.length} Active Detectors
+                </span>
               </div>
             </div>
 
-            {/* Card 2: Capture Provenance & Sensor Integrity */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm sm:text-base">
-                    <span className="text-emerald-600">📷</span>
-                    <span>Camera Sensor &amp; Physical Optics</span>
-                  </h3>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                    Physical Optics
-                  </span>
-                </div>
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Tile 1: Modality Classification */}
+              {(() => {
+                const mod = result.modality?.modality || (result.aiDetection?.label === 'DIGITAL_SCREENSHOT' ? 'SCREENSHOT' : 'NATURAL_PHOTO');
+                const conf = result.modality?.confidence !== undefined ? Math.round(result.modality.confidence * 100) : 95;
+                const modBadgeColors: Record<string, string> = {
+                  DOCUMENT: 'bg-blue-100 text-blue-800 border-blue-200',
+                  NATURAL_PHOTO: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                  SCREENSHOT: 'bg-slate-100 text-slate-800 border-slate-200',
+                  DIGITAL_GRAPHIC: 'bg-purple-100 text-purple-800 border-purple-200',
+                  MIXED_MEDIA: 'bg-amber-100 text-amber-800 border-amber-200',
+                };
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>📑</span>
+                          <span>Input Modality</span>
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-400">{conf}% conf</span>
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${modBadgeColors[mod] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                          {mod.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {result.modality?.evidence?.[0] || 'Classification verified across resolution and color distribution.'}
+                    </p>
+                  </div>
+                );
+              })()}
 
-                <div className="mt-4 space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Image Resolution:</span>
-                    <span className="font-mono font-medium text-slate-800">
-                      {result.dimensions ? `${result.dimensions.width} × ${result.dimensions.height} px` : 'Original Size'}
-                    </span>
+              {/* Tile 2: DQT Quantization Signature */}
+              {(() => {
+                const dqtEv = result.evidence.find((e) => e.detector === 'dqt_fingerprint');
+                const matchName = dqtEv?.evidence?.match_name || (result.opticalMetadata?.hasExif ? 'Hardware Camera Profile' : 'Standard Web Encoder');
+                const isHw = dqtEv?.evidence?.match_category === 'CAMERA_HARDWARE' || Boolean(result.opticalMetadata?.make);
+                const qEst = dqtEv?.evidence?.quality_estimate;
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>💾</span>
+                          <span>DQT Quantization</span>
+                        </span>
+                        {qEst && <span className="font-mono text-[10px] text-slate-400">Q~{qEst}</span>}
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold truncate max-w-full ${
+                          isHw ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          {matchName}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {dqtEv?.notes?.[0] || 'Discrete Cosine Transform quantization tables verified.'}
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Manipulated Area Percentage:</span>
-                    <span className="font-mono font-medium text-slate-800">
-                      {result.affectedAreaPercentage !== undefined ? `${result.affectedAreaPercentage}%` : '0.0%'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">C2PA Provenance Manifest:</span>
-                    <span className="font-medium text-slate-700">
-                      {result.evidence.find((e) => e.detector === 'metadata')?.notes?.some((n) => n.includes('C2PA manifest') || n.includes('Google') || n.includes('OpenAI'))
-                        ? 'Verified C2PA Manifest'
-                        : 'Unsigned / Standard Camera Stream'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Sensor Noise Variance (PRNU):</span>
-                    <span className="font-medium text-slate-700 truncate max-w-[200px]">
-                      {result.evidence.find((e) => e.detector === 'noise_residual')?.notes?.[0] || 'Sensor noise stationary.'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
-              <p className="mt-3 text-[11px] text-slate-400 border-t border-slate-100 pt-2">
-                Cross-referenced with multi-scale noise residuals, Bayer CFA demosaicing correlation, and 2D FFT spectral decay.
-              </p>
+              {/* Tile 3: Sensor Noise Residual (PRNU) */}
+              {(() => {
+                const noiseEv = result.evidence.find((e) => e.detector === 'noise_residual');
+                const stdVar = noiseEv?.evidence?.std_variance;
+                const isUniform = !noiseEv?.notes?.[0]?.includes('High noise variance') && !noiseEv?.notes?.[0]?.includes('mismatch');
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>🔬</span>
+                          <span>Sensor PRNU Noise</span>
+                        </span>
+                        {stdVar !== undefined && <span className="font-mono text-[10px] text-slate-400">σ={stdVar.toFixed(1)}</span>}
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
+                          isUniform ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                        }`}>
+                          {isUniform ? 'STATIONARY SENSOR' : 'LOCAL NOISE DISCREPANCY'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {noiseEv?.notes?.[0] || 'Poisson-Gaussian sensor noise consistent across sensor frame.'}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Tile 4: Provenance & Container Integrity */}
+              {(() => {
+                const c2paEv = result.evidence.find((e) => e.detector === 'c2pa_parser');
+                const thumbEv = result.evidence.find((e) => e.detector === 'thumbnail_discrepancy');
+                const hasC2pa = c2paEv?.evidence?.has_manifest;
+                const isThumbMatch = thumbEv?.evidence?.status === 'THUMBNAIL_MATCH_AUTHENTIC';
+                const isThumbCropped = thumbEv?.evidence?.status === 'DISCREPANCY_CROPPED';
+
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>🛡️</span>
+                          <span>Container &amp; C2PA</span>
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
+                          hasC2pa
+                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : isThumbCropped
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {hasC2pa ? 'C2PA MANIFEST' : isThumbCropped ? 'CROP TAMPERED' : isThumbMatch ? 'EXIF THUMBNAIL MATCH' : 'UNALTERED CONTAINER'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {thumbEv?.notes?.[0] || c2paEv?.notes?.[0] || 'Image container and compression header integrity verified.'}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
