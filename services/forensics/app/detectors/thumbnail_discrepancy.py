@@ -265,3 +265,4 @@ def get_thumbnail_discrepancy_detector() -> ThumbnailDiscrepancyDetector:
     if _singleton is None:
         _singleton = ThumbnailDiscrepancyDetector()
     return _singleton
+

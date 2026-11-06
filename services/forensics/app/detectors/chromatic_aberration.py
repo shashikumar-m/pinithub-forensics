@@ -307,3 +307,4 @@ def get_chromatic_aberration_detector() -> ChromaticAberrationDetector:
     if _singleton is None:
         _singleton = ChromaticAberrationDetector()
     return _singleton
+

@@ -251,3 +251,4 @@ def get_c2pa_parser_detector() -> C2PAParserDetector:
     if _singleton is None:
         _singleton = C2PAParserDetector()
     return _singleton
+

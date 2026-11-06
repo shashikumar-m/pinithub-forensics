@@ -31,6 +31,13 @@ from app.detectors.copy_move import get_copy_move_detector
 from app.detectors.crop_detector import get_crop_detector
 from app.detectors.registration import get_registration_detector
 from app.detectors.ai_detector import get_ai_detector
+from app.detectors.dqt_fingerprint import get_dqt_fingerprint_detector
+from app.detectors.modality_router import classify_modality, ImageModality
+from app.detectors.c2pa_parser import get_c2pa_parser_detector
+from app.detectors.thumbnail_discrepancy import get_thumbnail_discrepancy_detector
+from app.detectors.chromatic_aberration import get_chromatic_aberration_detector
+from app.detectors.corneal_reflection import get_corneal_reflection_detector
+from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
 from app.fusion.calibrate import EvidenceCalibrator
@@ -78,12 +85,36 @@ def run_unified_analysis(
     has_reference = reference_bytes is not None and len(reference_bytes) > 0
     mode = "REFERENCE" if has_reference else "BLIND"
 
+    # 0. Universal Format Normalizer & Intake Safety
+    warnings: list[str] = []
+    try:
+        norm_res = normalize_image_bytes(suspect_bytes)
+        if not norm_res.error and len(norm_res.image_bytes) > 0:
+            active_suspect_bytes = norm_res.image_bytes
+        else:
+            active_suspect_bytes = suspect_bytes
+        if norm_res.warnings:
+            warnings.extend(norm_res.warnings)
+    except Exception as e:
+        logger.debug("Format normalizer fallback: %s", e)
+        active_suspect_bytes = suspect_bytes
+
     # Preprocess suspect image
-    pre = preprocess(suspect_bytes, max_dimension=1024)
+    pre = preprocess(active_suspect_bytes, max_dimension=1024)
     h, w = pre.height, pre.width
     orig_w, orig_h = pre.original_width, pre.original_height
 
-    warnings: list[str] = []
+    # 0b. Modality Pre-Routing
+    modality_info = None
+    try:
+        mod_result = classify_modality(active_suspect_bytes)
+        modality_info = {
+            "modality": mod_result.modality.value,
+            "confidence": mod_result.confidence,
+            "evidence": mod_result.evidence,
+        }
+    except Exception as e:
+        logger.debug("Modality router failed: %s", e)
     limitations: list[str] = [
         "No evidence found is not proof of authenticity.",
         "Generative AI detectors work best on known generator architectures.",
@@ -278,6 +309,112 @@ def run_unified_analysis(
         except Exception as e:
             logger.error(f"Detector {name} failed: {e}")
 
+    # 2b. Phase 1 & 2 Advanced Detectors (Hardware & Optics)
+    try:
+        dqt_det = get_dqt_fingerprint_detector()
+        dqt_res = dqt_det.timed_run("", image_bytes=active_suspect_bytes)
+        dqt_dict = dqt_res.to_dict()
+        all_detector_results["dqt_fingerprint"] = dqt_dict
+        dqt_details = dqt_dict.get("details", {})
+        if dqt_details.get("is_jpeg"):
+            evidence_list.append({
+                "detector": "dqt_fingerprint",
+                "version": dqt_res.version,
+                "category": "METADATA",
+                "score": dqt_res.score,
+                "reliability": 0.90,
+                "tag": "PROVEN",
+                "notes": dqt_details.get("evidence_notes", [])[:2],
+                "evidence": {
+                    "match_name": dqt_details.get("match_name"),
+                    "match_category": dqt_details.get("match_category"),
+                    "quality_estimate": dqt_details.get("quality_estimate"),
+                    "is_standard_libjpeg": dqt_details.get("is_standard_libjpeg"),
+                },
+            })
+    except Exception as e:
+        logger.debug("DQT detector failed: %s", e)
+
+    try:
+        c2pa_det = get_c2pa_parser_detector()
+        c2pa_res = c2pa_det.timed_run("", image_bytes=suspect_bytes)
+        c2pa_dict = c2pa_res.to_dict()
+        all_detector_results["c2pa"] = c2pa_dict
+        c2pa_details = c2pa_dict.get("details", {})
+        if c2pa_details.get("has_manifest"):
+            evidence_list.append({
+                "detector": "c2pa_parser",
+                "version": c2pa_res.version,
+                "category": "METADATA",
+                "score": c2pa_res.score,
+                "reliability": 0.99,
+                "tag": "PROVEN",
+                "notes": c2pa_details.get("evidence", [])[:2],
+                "evidence": c2pa_details,
+            })
+    except Exception as e:
+        logger.debug("C2PA parser failed: %s", e)
+
+    try:
+        thumb_det = get_thumbnail_discrepancy_detector()
+        thumb_res = thumb_det.timed_run("", image_bytes=suspect_bytes)
+        thumb_dict = thumb_res.to_dict()
+        all_detector_results["thumbnail_discrepancy"] = thumb_dict
+        thumb_details = thumb_dict.get("details", {})
+        if thumb_details.get("has_thumbnail"):
+            evidence_list.append({
+                "detector": "thumbnail_discrepancy",
+                "version": thumb_res.version,
+                "category": "METADATA",
+                "score": thumb_res.score,
+                "reliability": 0.95,
+                "tag": "PROVEN",
+                "notes": thumb_details.get("evidence", [])[:2],
+                "evidence": thumb_details,
+            })
+    except Exception as e:
+        logger.debug("Thumbnail discrepancy detector failed: %s", e)
+
+    try:
+        lca_det = get_chromatic_aberration_detector()
+        lca_res = lca_det.timed_run("", image_bytes=active_suspect_bytes)
+        lca_dict = lca_res.to_dict()
+        all_detector_results["chromatic_aberration"] = lca_dict
+        lca_details = lca_dict.get("details", {})
+        if lca_details.get("status") != "INCONCLUSIVE":
+            evidence_list.append({
+                "detector": "chromatic_aberration",
+                "version": lca_res.version,
+                "category": "METADATA",
+                "score": lca_res.score,
+                "reliability": 0.85,
+                "tag": "PROVEN",
+                "notes": lca_details.get("evidence", [])[:2],
+                "evidence": lca_details,
+            })
+    except Exception as e:
+        logger.debug("Chromatic aberration detector failed: %s", e)
+
+    try:
+        corneal_det = get_corneal_reflection_detector()
+        corneal_res = corneal_det.timed_run("", image_bytes=active_suspect_bytes)
+        corneal_dict = corneal_res.to_dict()
+        all_detector_results["corneal_reflection"] = corneal_dict
+        corneal_details = corneal_dict.get("details", {})
+        if corneal_details.get("status") != "NO_EYES_DETECTED":
+            evidence_list.append({
+                "detector": "corneal_reflection",
+                "version": corneal_res.version,
+                "category": "METADATA",
+                "score": corneal_res.score,
+                "reliability": 0.90,
+                "tag": "PROVEN",
+                "notes": corneal_details.get("evidence", [])[:2],
+                "evidence": corneal_details,
+            })
+    except Exception as e:
+        logger.debug("Corneal reflection detector failed: %s", e)
+
     # 3. AI Detector
     ai_status = "UNAVAILABLE"
     ai_score = 0.0
@@ -460,12 +597,20 @@ def run_unified_analysis(
     noise_std_val = float(noise_ev.get("std_variance") or 0.0)
     resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
 
-    # Check for manual user edits: spliced image, text added/overlaid, copy-move duplication, or editing software
+    # Check for manual user edits: spliced image, text added/overlaid, copy-move duplication, EXIF thumbnail mismatch, or editing software
+    thumb_det_res = all_detector_results.get("thumbnail_discrepancy", {}).get("details", {})
+    has_thumb_discrepancy = thumb_det_res.get("status") in ("DISCREPANCY_CROPPED", "DISCREPANCY_EDITED")
+    c2pa_res_details = all_detector_results.get("c2pa", {}).get("details", {})
+    has_c2pa_ai = bool(c2pa_res_details.get("is_ai_generated", False))
+    has_c2pa_edited = bool(c2pa_res_details.get("is_edited", False))
+
     has_manual_tamper_evidence = (
         ela_score_val > 0.18
         or len(copy_points) > 0
         or (ela_score_val >= 0.08 and noise_std_val > 200.0)
         or bool(editing_software and any(k in str(editing_software).lower() for k in ["photoshop", "gimp", "canva", "paint", "snapseed", "pixlr"]))
+        or has_thumb_discrepancy
+        or has_c2pa_edited
     )
 
     # Suppress spurious regions on clean camera photos when no detector found edits.
@@ -800,6 +945,7 @@ def run_unified_analysis(
             "heatmapUrl": heatmap_data_url,
             "maskUrl": mask_data_url,
         },
+        "modality": modality_info,
         "opticalMetadata": {
             "hasExif": has_exif,
             "make": camera_make,

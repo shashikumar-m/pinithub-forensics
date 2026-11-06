@@ -356,3 +356,4 @@ def get_corneal_reflection_detector() -> CornealReflectionDetector:
     if _singleton is None:
         _singleton = CornealReflectionDetector()
     return _singleton
+

@@ -129,3 +129,4 @@ def test_corneal_reflection_non_portrait():
     res = analyze_corneal_reflections(gray)
     assert res.status == "NO_EYES_DETECTED"
     assert res.face_count == 0
+
