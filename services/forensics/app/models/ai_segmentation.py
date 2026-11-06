@@ -53,10 +53,9 @@ class AISegmentationModel:
 
 def get_ai_segmentation_model(weights_path: Optional[str] = None) -> AISegmentationModel:
     global _model_instance
-    if _model_instance is None or (weights_path and weights_path != _model_instance._weights_path):
-        if weights_path is None:
-            weights_path = os.environ.get("AI_WEIGHTS_PATH")
-        _model_instance = AISegmentationModel(weights_path)
+    effective_path = weights_path if weights_path is not None else os.environ.get("AI_WEIGHTS_PATH")
+    if _model_instance is None or effective_path != _model_instance._weights_path:
+        _model_instance = AISegmentationModel(effective_path)
     return _model_instance
 
 

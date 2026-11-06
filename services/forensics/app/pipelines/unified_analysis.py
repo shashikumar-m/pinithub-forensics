@@ -584,18 +584,23 @@ def run_unified_analysis(
         )
         import re
         p50_match = re.search(r"p50:\s*([0-9.]+)", ai_ev_joined)
-        if p50_match:
-            try:
-                p50_num = float(p50_match.group(1))
-            except (ValueError, TypeError):
-                p50_num = 1.0
-        else:
-            p50_num = float(ai_details.get("p50") or 1.0)
+        p90_match = re.search(r"p90:\s*([0-9.]+)", ai_ev_joined)
+        p95_match = re.search(r"p95:\s*([0-9.]+)", ai_ev_joined)
+        p50_num = float(p50_match.group(1)) if p50_match else float(ai_details.get("p50") or 1.0)
+        p90_num = float(p90_match.group(1)) if p90_match else float(ai_details.get("p90") or 0.0)
+        p95_num = float(p95_match.group(1)) if p95_match else float(ai_details.get("p95") or 0.0)
+
         has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
+        # Principled Generalization: An image is ONLY a digitally enhanced real photo if the neural network
+        # does NOT detect high-confidence synthetic generation across salient subjects (p95 < 0.90 and p90 < 0.85).
+        # Generative diffusion/GAN models (Midjourney, DALL-E, SD) exhibit high peak activations (p95 >= 0.90)
+        # even when background is plain, and must remain FULL_AI_GENERATED.
+        has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
 
         is_digitally_enhanced = (
             not has_ai_provenance
             and not has_classical_corroboration
+            and not has_generative_subject_activation
             and ela_score_val < 0.20
             and len(copy_points) == 0
             and (has_natural_freq and has_low_p50)

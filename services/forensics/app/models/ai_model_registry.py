@@ -250,8 +250,9 @@ def get_ai_model_loader(weights_path: Optional[str] = None) -> AIModelLoader:
     Reset when weights_path changes (e.g. during testing).
     """
     global _loader
-    if _loader is None or (weights_path and weights_path != _loader._weights_path):
-        _loader = AIModelLoader(weights_path)
+    effective_path = weights_path if weights_path is not None else os.environ.get("AI_WEIGHTS_PATH")
+    if _loader is None or effective_path != _loader._weights_path:
+        _loader = AIModelLoader(effective_path)
     return _loader
 
 def reset_ai_model_loader() -> None:
