@@ -37,6 +37,7 @@ from app.detectors.c2pa_parser import get_c2pa_parser_detector
 from app.detectors.thumbnail_discrepancy import get_thumbnail_discrepancy_detector
 from app.detectors.chromatic_aberration import get_chromatic_aberration_detector
 from app.detectors.corneal_reflection import get_corneal_reflection_detector
+from app.detectors.cfa_demosaicing import get_cfa_demosaicing_detector
 from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
@@ -415,6 +416,27 @@ def run_unified_analysis(
     except Exception as e:
         logger.debug("Corneal reflection detector failed: %s", e)
 
+    # 2e. Bayer CFA Demosaicing Detector
+    try:
+        cfa_det = get_cfa_demosaicing_detector()
+        cfa_res = cfa_det.timed_run("", image_bytes=active_suspect_bytes)
+        cfa_dict = cfa_res.to_dict()
+        all_detector_results["cfa_demosaicing"] = cfa_dict
+        cfa_details = cfa_dict.get("details", {})
+        if cfa_details.get("status") != "INCONCLUSIVE":
+            evidence_list.append({
+                "detector": "cfa_demosaicing",
+                "version": cfa_res.version,
+                "category": "NOISE_RESIDUAL",
+                "score": cfa_res.score,
+                "reliability": 0.90,
+                "tag": "PROVEN",
+                "notes": cfa_details.get("evidence", [])[:2],
+                "evidence": cfa_details,
+            })
+    except Exception as e:
+        logger.debug("CFA demosaicing detector failed: %s", e)
+
     # 3. AI Detector
     ai_status = "UNAVAILABLE"
     ai_score = 0.0
@@ -692,12 +714,16 @@ def run_unified_analysis(
     noise_ev = noise_details.get("evidence", {})
     noise_std_val = float(noise_ev.get("std_variance") or 0.0)
     resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
+    cfa_details = all_detector_results.get("cfa_demosaicing", {}).get("details", {})
+    cfa_status = cfa_details.get("status")
     has_classical_corroboration = (
         ela_score_val > 0.18
     ) or (
         len(copy_points) > 0
     ) or (
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
+    ) or (
+        cfa_status == "CFA_DISCONTINUITY"
     ) or (
         ela_score_val >= 0.05 and noise_std_val > 200.0 and (1 <= len(regions) <= 4) and affected_area_pct < 10.0
     )
@@ -950,6 +976,7 @@ def run_unified_analysis(
             "maskUrl": mask_data_url,
         },
         "modality": modality_info,
+        "cfa": all_detector_results.get("cfa_demosaicing", {}).get("details"),
         "opticalMetadata": {
             "hasExif": has_exif,
             "make": camera_make,

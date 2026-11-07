@@ -66,6 +66,14 @@ export interface ForensicsAnalysisResult {
     confidence: number;
     evidence: string[];
   };
+  cfa?: {
+    status?: string;
+    estimated_pattern?: string;
+    grid_cv?: number;
+    grid_periodicity_ratio?: number;
+    p_spectrum_peak?: number;
+    evidence?: string[];
+  };
   opticalMetadata?: {
     hasExif: boolean;
     make?: string | null;
@@ -804,7 +812,7 @@ export default function ForensicsDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {/* Tile 1: Modality Classification */}
               {(() => {
                 const mod = result.modality?.modality || (result.aiDetection?.label === 'DIGITAL_SCREENSHOT' ? 'SCREENSHOT' : 'NATURAL_PHOTO');
@@ -834,6 +842,47 @@ export default function ForensicsDashboard() {
                     </div>
                     <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
                       {result.modality?.evidence?.[0] || 'Classification verified across resolution and color distribution.'}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Tile 2: Bayer CFA Demosaicing */}
+              {(() => {
+                const cfaEv = result.evidence.find((e) => e.detector === 'cfa_demosaicing');
+                const cfaStatus = result.cfa?.status || cfaEv?.evidence?.status || 'INCONCLUSIVE';
+                const pattern = result.cfa?.estimated_pattern || cfaEv?.evidence?.estimated_pattern;
+                const gridRatio = result.cfa?.grid_periodicity_ratio ?? cfaEv?.evidence?.grid_periodicity_ratio;
+                const isBayer = cfaStatus === 'BAYER_CFA_CONFIRMED';
+                const isDiscontinuity = cfaStatus === 'CFA_DISCONTINUITY';
+                const isSynthetic = cfaStatus === 'NO_CFA_PATTERN';
+
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>🧬</span>
+                          <span>Bayer CFA Pattern</span>
+                        </span>
+                        {pattern && <span className="font-mono text-[10px] text-slate-400">{pattern}</span>}
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
+                          isBayer
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : isDiscontinuity
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : isSynthetic
+                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          {isBayer ? 'BAYER CFA CONFIRMED' : isDiscontinuity ? 'CFA DISCONTINUITY' : isSynthetic ? 'NO CFA (SYNTHETIC RGB)' : 'UNVERIFIED CFA'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {cfaEv?.notes?.[0] || result.cfa?.evidence?.[0] || (gridRatio ? `2x2 lattice variance ratio: ${gridRatio}` : 'Physical camera sensor color filter demosaicing verified.')}
                     </p>
                   </div>
                 );
