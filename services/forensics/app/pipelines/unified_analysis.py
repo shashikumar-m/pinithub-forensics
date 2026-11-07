@@ -749,7 +749,7 @@ def run_unified_analysis(
     ) or (
         cfa_status == "CFA_DISCONTINUITY"
     ) or (
-        face_status == "DEEPFAKE_FACE_DISCREPANCY"
+        face_status in ("DEEPFAKE_FACE_DISCREPANCY", "SYNTHETIC_FACIAL_ARTIFACTS")
     ) or (
         ela_score_val >= 0.05 and noise_std_val > 200.0 and (1 <= len(regions) <= 4) and affected_area_pct < 10.0
     )
@@ -760,6 +760,17 @@ def run_unified_analysis(
     has_ai_provenance = (
         ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
         editing_software == "Canva"
+    )
+
+    # Physical Camera Sensor & Bayer CFA Continuity Analysis
+    grid_cv_val = float(cfa_details.get("grid_cv") or 1.0)
+    cfa_tampered_blocks = cfa_details.get("tampered_blocks_detected", 0)
+    cfa_total_blocks = max(1, cfa_details.get("total_blocks_analyzed", 1))
+    cfa_tamper_ratio = cfa_tampered_blocks / cfa_total_blocks
+    has_unbroken_camera_cfa = (
+        cfa_status == "BAYER_CFA_CONFIRMED"
+        and cfa_tamper_ratio < 0.03
+        and grid_cv_val < 0.012
     )
 
     if is_screenshot:
@@ -783,12 +794,13 @@ def run_unified_analysis(
             if ela_score_val < 0.15 and len(copy_points) == 0:
                 classification = "CAMERA_CAPTURED"
                 verdict = "NOT_EDITED"
+                regions = []
             else:
                 classification = "INCONCLUSIVE"
                 verdict = "INCONCLUSIVE"
                 warnings.append("Potential localized anomalies detected by experimental AI model, but classical sensor noise and recompression checks show no corroboration.")
     elif ai_status == "AI_GENERATED" or has_ai_provenance:
-        # Check Option A: Digitally enhanced / filtered real photo
+        # Check Option A: Digitally enhanced / filtered real photo or camera photo with unbroken CFA
         # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
         # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
         # It is a digitally enhanced real photograph!
@@ -814,23 +826,43 @@ def run_unified_analysis(
         # even when background is plain, and must remain FULL_AI_GENERATED.
         has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
 
-        is_digitally_enhanced = (
-            not has_ai_provenance
+        # Physical Camera Hardware & CFA Invariance Override:
+        # An authentic physical CMOS/CCD camera sensor produces an unbroken Bayer demosaicing lattice
+        # with low grid CV (<0.012), natural 1/f frequency decay, low ELA score, and no copy-move points.
+        # Deep neural segmentation activations on dark/smooth clothing or shadows on such photos
+        # are uncorroborated false positives.
+        has_camera_hardware_cfa = (
+            has_unbroken_camera_cfa
             and not has_classical_corroboration
-            and not has_generative_subject_activation
-            and ela_score_val < 0.20
+            and not has_ai_provenance
+            and (has_natural_freq or p50_num < 0.20)
+            and ela_score_val < 0.15
             and len(copy_points) == 0
-            and (has_natural_freq and has_low_p50)
         )
-        if is_digitally_enhanced:
-            classification = "DIGITALLY_ENHANCED"
+
+        if has_camera_hardware_cfa:
+            classification = "CAMERA_CAPTURED"
             verdict = "NOT_EDITED"
-            ai_score = 0.12
+            ai_score = 0.03
+            regions = []
         else:
-            classification = "AI_GENERATED"
-            verdict = "EDITED"
-            if ai_score < 0.85:
-                ai_score = 0.95
+            is_digitally_enhanced = (
+                not has_ai_provenance
+                and not has_classical_corroboration
+                and not has_generative_subject_activation
+                and ela_score_val < 0.20
+                and len(copy_points) == 0
+                and (has_natural_freq and has_low_p50)
+            )
+            if is_digitally_enhanced:
+                classification = "DIGITALLY_ENHANCED"
+                verdict = "NOT_EDITED"
+                ai_score = 0.12
+            else:
+                classification = "AI_GENERATED"
+                verdict = "EDITED"
+                if ai_score < 0.85:
+                    ai_score = 0.95
     elif ai_provenance == "AI_EDITED":
         classification = "AI_EDITED"
         verdict = "EDITED"
