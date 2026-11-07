@@ -60,31 +60,31 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Top Navbar - Cyber Tactical Command Bar */}
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md transition-all shadow-xl">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 text-white shadow-md shadow-cyan-500/20 group-hover:scale-105 transition-transform border border-cyan-400/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-cyan-500 text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base sm:text-lg font-black tracking-wider text-slate-100 font-mono">PINITHUB</span>
-                <span className="rounded bg-cyan-950 border border-cyan-500/40 px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase tracking-widest text-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.25)]">
-                  FORENSIC OPS
+              <div className="flex items-center gap-1.5">
+                <span className="text-base sm:text-lg font-black tracking-tight text-slate-900">PINITHUB</span>
+                <span className="rounded bg-brand-100/70 px-1.5 py-0.2 text-[10px] font-bold uppercase tracking-wider text-brand-700">
+                  Forensics
                 </span>
               </div>
-              <p className="text-[10px] font-mono text-slate-400 hidden sm:block leading-none mt-0.5">
-                OPTICAL SENSOR &amp; SYNTHETIC MEDIA LAB
+              <p className="text-[10px] font-medium text-slate-400 hidden sm:block leading-none">
+                AI &amp; Optical Sensor Provenance
               </p>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 shadow-inner">
+          <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shadow-inner">
             {navItems.map((item) => {
               const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
               return (
@@ -92,13 +92,13 @@ export default function Navbar() {
                   key={item.to}
                   to={item.to}
                   end={item.to === '/'}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                      ? 'bg-white text-brand-700 shadow-sm border border-slate-200/50'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
-                  <span className={isActive ? 'text-cyan-400' : 'text-slate-500'}>{item.icon}</span>
+                  <span className={isActive ? 'text-brand-600' : 'text-slate-400'}>{item.icon}</span>
                   <span>{item.label}</span>
                 </NavLink>
               );
@@ -107,18 +107,18 @@ export default function Navbar() {
 
           {/* Header Right Status Pill & Mobile Menu Toggle */}
           <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-2 rounded-full bg-slate-900 border border-emerald-500/30 px-3 py-1 text-[11px] font-mono text-emerald-400 shadow-sm">
+            <div className="hidden lg:flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/70 px-2.5 py-1 text-[11px] font-medium text-emerald-700 shadow-sm">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span>10 DETECTORS ONLINE</span>
+              <span>10 Detectors Online</span>
             </div>
 
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none"
+              className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? (
@@ -136,12 +136,12 @@ export default function Navbar() {
 
         {/* Mobile Dropdown Panel */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md px-4 py-3 shadow-2xl animate-fadeIn">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-xs font-mono">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">COMMAND NAVIGATION</span>
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
+          <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 py-3 shadow-lg animate-fadeIn">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Navigation</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>ENGINES ACTIVE</span>
+                <span>Forensic Engine Ready</span>
               </div>
             </div>
             <div className="space-y-1">
@@ -152,13 +152,13 @@ export default function Navbar() {
                     key={item.to}
                     to={item.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-mono transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                       isActive
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
-                        : 'text-slate-300 hover:bg-slate-900'
+                        ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-sm'
+                        : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <span className={isActive ? 'text-cyan-400' : 'text-slate-500'}>{item.icon}</span>
+                    <span className={isActive ? 'text-brand-600' : 'text-slate-400'}>{item.icon}</span>
                     <span>{item.label}</span>
                   </Link>
                 );
@@ -169,20 +169,20 @@ export default function Navbar() {
       </header>
 
       {/* Mobile Sticky Bottom Navigation Bar (Thumb Friendly) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800 shadow-2xl px-1 py-1.5 flex justify-around items-center">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-lg px-1 py-1.5 flex justify-around items-center">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
           return (
             <Link
               key={item.to}
               to={item.to}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors min-w-[56px] font-mono ${
-                isActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors min-w-[56px] ${
+                isActive ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              <div className={`p-1 rounded-md ${isActive ? 'bg-cyan-500/20 text-cyan-400' : ''}`}>
+              <div className={`p-1 rounded-md ${isActive ? 'bg-brand-50' : ''}`}>
                 {React.cloneElement(item.icon, {
-                  className: `h-5 w-5 ${isActive ? 'text-cyan-400 scale-110' : 'text-slate-500'} transition-transform`,
+                  className: `h-5 w-5 ${isActive ? 'text-brand-600 scale-110' : 'text-slate-400'} transition-transform`,
                 })}
               </div>
               <span className="text-[10px] tracking-tight mt-0.5">{item.shortLabel}</span>

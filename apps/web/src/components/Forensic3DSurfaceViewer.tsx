@@ -281,7 +281,7 @@ export const Forensic3DSurfaceViewer: React.FC<Forensic3DSurfaceViewerProps> = (
       {/* 3D Viewport Controls & Telemetry HUD */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
         {/* Left Telemetry HUD */}
-        <div className="bg-slate-950/85 backdrop-blur-sm border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-[11px] flex items-center gap-3 text-slate-300 shadow-md">
+        <div className="bg-slate-950/85 backdrop-blur-xs border border-slate-800 px-3 py-1.5 rounded-xl font-mono text-[11px] flex items-center gap-3 text-slate-300 shadow-md">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
             <span className="text-slate-400">PEAK ANOMALY:</span>
@@ -294,7 +294,7 @@ export const Forensic3DSurfaceViewer: React.FC<Forensic3DSurfaceViewerProps> = (
         </div>
 
         {/* Right 3D Tactical Mode Controls */}
-        <div className="bg-slate-950/85 backdrop-blur-sm border border-slate-800 p-1 rounded-xl flex items-center gap-1 shadow-md">
+        <div className="bg-slate-950/85 backdrop-blur-xs border border-slate-800 p-1 rounded-xl flex items-center gap-1 shadow-md">
           <button
             type="button"
             onClick={() => setAutoRotate(!autoRotate)}
@@ -368,7 +368,7 @@ export const Forensic3DSurfaceViewer: React.FC<Forensic3DSurfaceViewerProps> = (
       />
 
       {/* Bottom Floating Altitude Slider & Legend */}
-      <div className="absolute bottom-3 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-auto bg-slate-950/85 backdrop-blur-sm border border-slate-800/80 px-4 py-2 rounded-xl text-xs font-mono text-slate-400">
+      <div className="absolute bottom-3 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-auto bg-slate-950/85 backdrop-blur-xs border border-slate-800/80 px-4 py-2 rounded-xl text-xs font-mono text-slate-400">
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-slate-400">ELEVATION SCALE:</span>
           <input
@@ -395,4 +395,3 @@ export const Forensic3DSurfaceViewer: React.FC<Forensic3DSurfaceViewerProps> = (
 };
 
 export default Forensic3DSurfaceViewer;
-

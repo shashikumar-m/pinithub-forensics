@@ -23,41 +23,41 @@ export default function Vault() {
   }
 
   return (
-    <div className="container-page font-sans">
-      <h1 className="text-2xl font-bold font-mono text-slate-100">SEALED FORENSIC VAULT</h1>
-      <p className="mt-1 text-sm font-mono text-slate-400">Protected original images and their cryptographic audit records.</p>
+    <div className="container-page">
+      <h1 className="text-2xl font-bold text-slate-900">Vault</h1>
+      <p className="mt-1 text-sm text-slate-600">Protected original images and their forensic records.</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Image list */}
         <div className="lg:col-span-1">
-          {isLoading && <p className="text-sm font-mono text-cyan-400">Loading vault records…</p>}
-          {error && <p className="text-sm font-mono text-red-400">Failed to load. Is the API running?</p>}
+          {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
+          {error && <p className="text-sm text-red-600">Failed to load. Is the API running?</p>}
           {data?.items.length === 0 && (
             <div className="card text-center">
-              <p className="text-sm font-mono text-slate-400">No protected images in vault yet.</p>
+              <p className="text-sm text-slate-400">No protected images yet.</p>
             </div>
           )}
           <ul className="space-y-2">
             {data?.items.map((img) => (
               <li key={img.id}>
                 <div
-                  className={`rounded-xl border p-3 transition-colors ${selectedId === img.id ? 'border-cyan-500/60 bg-cyan-950/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'}`}
+                  className={`rounded-lg border p-3 transition-colors ${selectedId === img.id ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white'}`}
                 >
                   <button
                     className="w-full text-left"
                     onClick={() => setSelectedId(img.id)}
                   >
-                    <p className="truncate text-sm font-mono font-medium text-slate-200">{img.originalFilename}</p>
-                    <p className="mt-0.5 text-xs font-mono text-slate-400">
+                    <p className="truncate text-sm font-medium text-slate-800">{img.originalFilename}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
                       {img.format?.toUpperCase()} · {bytes(img.sizeBytes)}
                       {img.width && img.height ? ` · ${img.width}×${img.height}` : ''}
                     </p>
-                    <p className="mt-0.5 text-xs font-mono text-slate-500">
+                    <p className="mt-0.5 text-xs text-slate-400">
                       {new Date(img.createdAt).toLocaleDateString()}
                     </p>
                   </button>
                   <button
-                    className="mt-2 flex items-center gap-1 text-xs font-mono text-red-400 hover:text-red-300"
+                    className="mt-2 flex items-center gap-1 text-xs text-red-500 hover:text-red-700"
                     onClick={(e) => { e.stopPropagation(); handleDelete(img.id, img.originalFilename); }}
                     disabled={deleteImage.isPending}
                   >
@@ -74,8 +74,8 @@ export default function Vault() {
           {selectedId ? (
             <ImageDetail imageId={selectedId} />
           ) : (
-            <div className="card flex h-40 items-center justify-center font-mono text-slate-400">
-              <p className="text-sm">Select an image from the vault to view its forensic record</p>
+            <div className="card flex h-40 items-center justify-center">
+              <p className="text-sm text-slate-400">Select an image to view its forensic record</p>
             </div>
           )}
         </div>

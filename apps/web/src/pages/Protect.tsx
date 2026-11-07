@@ -24,8 +24,8 @@ export default function Protect() {
   return (
     <div className="container-page">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold font-mono text-slate-100">PROTECT &amp; REGISTER VAULT</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-bold text-slate-900">Protect an Image</h1>
+        <p className="mt-1 text-sm text-slate-600">
           Register an original image in the forensic vault. The file is stored unchanged
           with a verified SHA-256 hash.
         </p>
@@ -43,7 +43,7 @@ export default function Protect() {
         {/* Step 2a — Camera capture */}
         {step === 'CAPTURING' && (
           <div className="mx-auto max-w-2xl">
-            <h2 className="mb-4 text-lg font-semibold font-mono text-slate-200">TAKE A PHOTO</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Take a photo</h2>
             <CaptureCamera
               onCapture={(file, captureTimestamp) =>
                 protect(file, 'CAMERA_CAPTURE', captureTimestamp)
@@ -56,7 +56,7 @@ export default function Protect() {
         {/* Step 2b — File upload */}
         {step === 'UPLOADING' && (
           <div className="mx-auto max-w-2xl">
-            <h2 className="mb-4 text-lg font-semibold font-mono text-slate-200">UPLOAD ORIGINAL EVIDENCE</h2>
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Upload an image</h2>
             <UploadBox onFile={(file) => protect(file, 'FILE_UPLOAD')} />
             <div className="mt-4">
               <button className="btn-secondary text-sm" onClick={reset}>

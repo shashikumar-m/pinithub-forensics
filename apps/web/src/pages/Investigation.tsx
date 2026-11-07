@@ -8,14 +8,14 @@ import InvestigationCompare from '../components/InvestigationCompare';
 export default function Investigation() {
   return (
     <div className="container-page">
-      <h1 className="text-2xl font-bold font-mono text-slate-100">REFERENCE INVESTIGATION WORKSPACE</h1>
-      <p className="mt-1 text-sm text-slate-400 font-mono">
+      <h1 className="text-2xl font-bold text-slate-900">Investigation</h1>
+      <p className="mt-1 text-sm text-slate-600">
         Compare a protected original against a suspect copy. Registration, difference
         analysis, crop detection, and travel analysis are shown as forensic signals — not a final verdict.
       </p>
 
-      <div className="mt-6 rounded-xl border border-cyan-500/30 bg-cyan-950/30 px-4 py-3 font-mono text-cyan-300">
-        <p className="text-xs sm:text-sm">
+      <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <p className="text-sm text-amber-800">
           <strong>Phase 4–7 — Reference Comparison, Crop &amp; Travel Analysis.</strong>{' '}
           Transport transformations (compression, resize, metadata strip) are benign platform
           behaviours — NOT content manipulation evidence.
