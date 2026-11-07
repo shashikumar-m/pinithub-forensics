@@ -39,6 +39,7 @@ from app.detectors.chromatic_aberration import get_chromatic_aberration_detector
 from app.detectors.corneal_reflection import get_corneal_reflection_detector
 from app.detectors.cfa_demosaicing import get_cfa_demosaicing_detector
 from app.detectors.face_biometrics import get_face_biometrics_detector
+from app.detectors.univfd import get_univfd_detector
 from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
@@ -516,6 +517,30 @@ def run_unified_analysis(
         })
     except Exception as e:
         logger.error(f"AI detector failed: {e}")
+
+    # 3b. Universal Fake Detector (UnivFD - CVPR 2023 CLIP-ViT)
+    univfd_score: Optional[float] = None
+    univfd_details: dict[str, Any] = {}
+    try:
+        univ_det = get_univfd_detector()
+        univ_res = univ_det.timed_run("", image_bytes=active_suspect_bytes)
+        univ_dict = univ_res.to_dict()
+        all_detector_results["univfd"] = univ_dict
+        univfd_details = univ_dict.get("details", {})
+        univfd_score = univ_dict.get("score")
+        if univfd_score is not None:
+            evidence_list.append({
+                "detector": "univfd",
+                "version": univ_res.version,
+                "category": "AI_GENERATED",
+                "score": round(univfd_score, 4),
+                "reliability": 0.85,
+                "tag": "PROVEN",
+                "notes": univfd_details.get("evidence", [])[:2],
+                "evidence": univfd_details,
+            })
+    except Exception as e:
+        logger.debug("UnivFD detector failed: %s", e)
 
     # 4. Reference Comparison & Crop Detection (if Reference Image provided)
     crop_info: Optional[dict] = None

@@ -12,6 +12,7 @@ from app.detectors.jpeg_double_compression import JPEGDoubleCompressionDetector,
 from app.detectors.resampling import ResamplingDetector, get_resampling_detector
 from app.detectors.jpeg_grid import JPEGGridDetector, get_jpeg_grid_detector
 from app.detectors.copy_move import CopyMoveDetector, get_copy_move_detector
+from app.detectors.univfd import UnivFDDetector, get_univfd_detector
 
 __all__ = [
     "BaseDetector", "DetectorResult", "DetectorCategory",
@@ -23,4 +24,5 @@ __all__ = [
     "ResamplingDetector", "get_resampling_detector",
     "JPEGGridDetector", "get_jpeg_grid_detector",
     "CopyMoveDetector", "get_copy_move_detector",
+    "UnivFDDetector", "get_univfd_detector",
 ]
