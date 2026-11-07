@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Forensic3DSurfaceViewer } from './Forensic3DSurfaceViewer';
 
 export interface ForensicRegion {
   id: string;
@@ -18,7 +19,7 @@ export interface ForensicWorkstationViewerProps {
   executionMs?: number;
 }
 
-type ViewMode = 'blend' | 'curtain' | 'grid' | 'high_contrast';
+type ViewMode = 'blend' | 'curtain' | 'high_contrast' | '3d_mesh';
 
 export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps> = ({
   suspectPreview,
@@ -154,126 +155,161 @@ export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps>
           >
             HIGH-PASS EDGE
           </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('3d_mesh')}
+            className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-colors ${
+              viewMode === '3d_mesh'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            3D SURFACE MESH
+          </button>
         </div>
       </div>
 
       {/* 2. Tactical Inspection Secondary Controls */}
-      <div className="border-b border-slate-800/60 bg-slate-900/40 px-4 py-2 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-        {/* Left: Heatmap Opacity & Controls */}
-        <div className="flex flex-wrap items-center gap-4">
-          {viewMode === 'blend' && heatmapUrl && (
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-[11px]">ALPHA BLEND:</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={heatmapOpacity}
-                onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
-                className="h-1.5 w-24 sm:w-32 cursor-pointer rounded-lg bg-slate-800 accent-cyan-400"
-              />
-              <span className="w-8 text-right font-bold text-cyan-300">{heatmapOpacity}%</span>
-            </div>
-          )}
-
-          {viewMode === 'curtain' && (
-            <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-              <span>DIVIDER POSITION:</span>
-              <span className="text-cyan-300 font-bold">{curtainPos}%</span>
-              <span className="text-slate-500 hidden sm:inline">(DRAG CENTER HANDLE)</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right: Tactical Optical Toggles */}
-        <div className="flex items-center gap-2">
-          {/* 8x8 DCT Grid Overlay Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowGrid(!showGrid)}
-            className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
-              showGrid
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Overlay 8x8 JPEG Macroblock DCT Grid to spot grid shifts"
-          >
-            8×8 DCT GRID {showGrid ? 'ON' : 'OFF'}
-          </button>
-
-          {/* Subpixel Loupe Magnifier Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowLoupe(!showLoupe)}
-            className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
-              showLoupe
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Hover magnifier loupe for subpixel edge inspection"
-          >
-            LOUPE {showLoupe ? 'ON' : 'OFF'}
-          </button>
-
-          {/* Crosshair Reticle Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowCrosshairs(!showCrosshairs)}
-            className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
-              showCrosshairs
-                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
-                : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
-            }`}
-            title="Toggle coordinate crosshairs"
-          >
-            RETICLE
-          </button>
-
-          {/* Region Bounding Box Toggle */}
-          {regions.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
-              className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
-                showBoundingBoxes
-                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
-                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              REGIONS ({regions.length})
-            </button>
-          )}
-
-          {/* Zoom Controls */}
-          <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setZoomLevel((z) => Math.max(1, Number((z - 0.25).toFixed(2))))}
-              className="px-2 py-0.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Zoom Out"
-            >
-              −
-            </button>
-            <span className="px-2 py-0.5 text-[11px] text-cyan-300 font-bold">{Math.round(zoomLevel * 100)}%</span>
-            <button
-              type="button"
-              onClick={() => setZoomLevel((z) => Math.min(2.5, Number((z + 0.25).toFixed(2))))}
-              className="px-2 py-0.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Zoom In"
-            >
-              +
-            </button>
+      {viewMode === '3d_mesh' ? (
+        <div className="border-b border-slate-800/60 bg-slate-900/40 px-4 py-2 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 text-cyan-300">
+            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span>LIVE 3D TOPOGRAPHICAL ANOMALY MESH (ORBIT: DRAG • ZOOM: SCROLL • ALTITUDE SLIDER BELOW)</span>
+          </div>
+          <div className="text-slate-400 text-[11px]">
+            ACTIVE ENGINE: <span className="text-emerald-400 font-semibold">ORTHOGRAPHIC 3D RAY PROJECTION</span>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="border-b border-slate-800/60 bg-slate-900/40 px-4 py-2 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          {/* Left: Heatmap Opacity & Controls */}
+          <div className="flex flex-wrap items-center gap-4">
+            {viewMode === 'blend' && heatmapUrl && (
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-[11px]">ALPHA BLEND:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={heatmapOpacity}
+                  onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
+                  className="h-1.5 w-24 sm:w-32 cursor-pointer rounded-lg bg-slate-800 accent-cyan-400"
+                />
+                <span className="w-8 text-right font-bold text-cyan-300">{heatmapOpacity}%</span>
+              </div>
+            )}
+
+            {viewMode === 'curtain' && (
+              <div className="flex items-center gap-2 text-slate-400 text-[11px]">
+                <span>DIVIDER POSITION:</span>
+                <span className="text-cyan-300 font-bold">{curtainPos}%</span>
+                <span className="text-slate-500 hidden sm:inline">(DRAG CENTER HANDLE)</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Tactical Optical Toggles */}
+          <div className="flex items-center gap-2">
+            {/* 8x8 DCT Grid Overlay Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowGrid(!showGrid)}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+                showGrid
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Overlay 8x8 JPEG Macroblock DCT Grid to spot grid shifts"
+            >
+              8×8 DCT GRID {showGrid ? 'ON' : 'OFF'}
+            </button>
+
+            {/* Subpixel Loupe Magnifier Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowLoupe(!showLoupe)}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+                showLoupe
+                  ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Hover magnifier loupe for subpixel edge inspection"
+            >
+              LOUPE {showLoupe ? 'ON' : 'OFF'}
+            </button>
+
+            {/* Crosshair Reticle Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowCrosshairs(!showCrosshairs)}
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+                showCrosshairs
+                  ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300'
+                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle coordinate crosshairs"
+            >
+              RETICLE
+            </button>
+
+            {/* Region Bounding Box Toggle */}
+            {regions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowBoundingBoxes(!showBoundingBoxes)}
+                className={`px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-colors ${
+                  showBoundingBoxes
+                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
+                    : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                REGIONS ({regions.length})
+              </button>
+            )}
+
+            {/* Zoom Controls */}
+            <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setZoomLevel((z) => Math.max(1, Number((z - 0.25).toFixed(2))))}
+                className="px-2 py-0.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Zoom Out"
+              >
+                −
+              </button>
+              <span className="px-2 py-0.5 text-[11px] text-cyan-300 font-bold">{Math.round(zoomLevel * 100)}%</span>
+              <button
+                type="button"
+                onClick={() => setZoomLevel((z) => Math.min(2.5, Number((z + 0.25).toFixed(2))))}
+                className="px-2 py-0.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Zoom In"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Main Optical Canvas Area */}
-      <div
-        ref={containerRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className="relative flex items-center justify-center p-4 sm:p-8 min-h-[420px] max-h-[72vh] overflow-hidden select-none bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]"
-      >
+      {viewMode === '3d_mesh' ? (
+        <div className="p-3 sm:p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[440px]">
+          <div className="w-full max-w-5xl">
+            <Forensic3DSurfaceViewer
+              heatmapUrl={heatmapUrl}
+              suspectPreview={suspectPreview}
+              dimensions={dimensions}
+            />
+          </div>
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          className="relative flex items-center justify-center p-4 sm:p-8 min-h-[420px] max-h-[72vh] overflow-hidden select-none bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]"
+        >
         {/* Tactical Corner Brackets */}
         <div className="pointer-events-none absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-cyan-500/60" />
         <div className="pointer-events-none absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-cyan-500/60" />
@@ -440,6 +476,7 @@ export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps>
           </div>
         )}
       </div>
+      )}
 
       {/* 4. Forensic Region Inspection Strip (When Regions Are Present) */}
       {regions.length > 0 && (
@@ -502,7 +539,7 @@ export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps>
         </div>
 
         <div className="text-slate-500">
-          MODE: <span className="text-slate-300 font-bold uppercase">{viewMode}</span> | RENDER: COMPOSITE HEATMAP
+          MODE: <span className="text-slate-300 font-bold uppercase">{viewMode}</span> | RENDER: {viewMode === '3d_mesh' ? '3D TOPOGRAPHICAL RAY TRACE' : 'COMPOSITE HEATMAP'}
         </div>
       </div>
     </div>
