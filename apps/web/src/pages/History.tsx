@@ -7,29 +7,29 @@ export default function History() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
-    <div className="container-page">
-      <h1 className="text-2xl font-bold text-slate-900">Analysis History</h1>
-      <p className="mt-1 text-sm text-slate-600">Past forensic analyses and their status.</p>
+    <div className="container-page font-sans">
+      <h1 className="text-2xl font-bold font-mono text-slate-100">AUDIT LOG &amp; ANALYSIS HISTORY</h1>
+      <p className="mt-1 text-sm font-mono text-slate-400">Past forensic analyses and verification ledger.</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Analysis list */}
         <div className="lg:col-span-1">
-          {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
-          {error && <p className="text-sm text-red-600">Failed to load analyses.</p>}
+          {isLoading && <p className="text-sm font-mono text-cyan-400">Loading historical audit logs…</p>}
+          {error && <p className="text-sm font-mono text-red-400">Failed to load analyses.</p>}
           {data?.items.length === 0 && (
             <div className="card text-center">
-              <p className="text-sm text-slate-500">No analyses yet.</p>
+              <p className="text-sm font-mono text-slate-400">No analyses logged yet.</p>
             </div>
           )}
           <ul className="space-y-2">
             {data?.items.map((a) => (
               <li key={a.id}>
                 <button
-                  className={`w-full rounded-lg border p-3 text-left transition-colors ${selectedId === a.id ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                  className={`w-full rounded-xl border p-3 text-left transition-colors font-mono ${selectedId === a.id ? 'border-cyan-500/60 bg-cyan-950/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]' : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'}`}
                   onClick={() => setSelectedId(a.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-800">{a.type}</span>
+                    <span className="text-sm font-medium text-slate-200">{a.type}</span>
                     <StatusBadge status={a.status} />
                   </div>
                   <p className="mt-0.5 text-xs text-slate-400">

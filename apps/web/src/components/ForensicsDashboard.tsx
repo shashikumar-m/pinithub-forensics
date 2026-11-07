@@ -277,28 +277,28 @@ export default function ForensicsDashboard() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* 1. Upload & Inspection Control Card */}
-      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-7 shadow-sm transition-all">
+    <div className="space-y-6 sm:space-y-8 font-sans">
+      {/* 1. Upload & Inspection Control Card - Cyber Forensic Ingestion Station */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900/80 p-4 sm:p-7 shadow-2xl backdrop-blur-sm transition-all">
         {/* Card Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse" />
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-                Upload &amp; Analyze Image
+              <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
+              <h2 className="text-lg sm:text-xl font-bold text-slate-100 font-mono tracking-wide">
+                OPTICAL EVIDENCE INGESTION TERMINAL
               </h2>
             </div>
-            <p className="mt-1 text-xs sm:text-sm text-slate-500 leading-snug">
-              Supports real camera photos (smartphones, WhatsApp, documents) and AI models (Canva, Gemini, ChatGPT/DALL-E, Midjourney, Stable Diffusion).
+            <p className="mt-1 text-xs sm:text-sm text-slate-400 font-mono leading-snug">
+              Ingest raw camera raster, social compression transcode (WhatsApp, Web), or synthetic diffusion exports.
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 border border-brand-200/80 px-3 py-1 text-[11px] sm:text-xs font-semibold text-brand-700">
-              <svg className="h-3.5 w-3.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/40 px-3 py-1 text-[11px] font-mono font-semibold text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]">
+              <svg className="h-3.5 w-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <span>Multi-Source Provenance</span>
+              <span>10-LAYER SPECTRAL &amp; BIOMETRIC SCAN</span>
             </span>
           </div>
         </div>
@@ -307,14 +307,20 @@ export default function ForensicsDashboard() {
         <div className="mt-5">
           <div
             onClick={() => suspectInputRef.current?.click()}
-            className="group relative flex min-h-[200px] sm:min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-4 sm:p-6 transition-all hover:border-brand-500 hover:bg-brand-50/20 active:scale-[0.99]"
+            className="group relative flex min-h-[200px] sm:min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/70 p-4 sm:p-6 transition-all hover:border-cyan-400 hover:bg-slate-950 active:scale-[0.99]"
           >
+            {/* Tactical Corner Brackets */}
+            <div className="pointer-events-none absolute top-2.5 left-2.5 w-3 h-3 border-t-2 border-l-2 border-cyan-500/50" />
+            <div className="pointer-events-none absolute top-2.5 right-2.5 w-3 h-3 border-t-2 border-r-2 border-cyan-500/50" />
+            <div className="pointer-events-none absolute bottom-2.5 left-2.5 w-3 h-3 border-b-2 border-l-2 border-cyan-500/50" />
+            <div className="pointer-events-none absolute bottom-2.5 right-2.5 w-3 h-3 border-b-2 border-r-2 border-cyan-500/50" />
+
             {suspectPreview ? (
               <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
                 <img
                   src={suspectPreview}
                   alt="Suspect Preview"
-                  className="max-h-[320px] sm:max-h-[420px] w-auto max-w-full object-contain rounded-lg shadow-sm"
+                  className="max-h-[320px] sm:max-h-[420px] w-auto max-w-full object-contain rounded-lg shadow-2xl border border-slate-800"
                 />
 
                 {/* Live Scanning Laser Overlay during Loading */}
@@ -322,7 +328,7 @@ export default function ForensicsDashboard() {
                   <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg bg-cyan-950/30 backdrop-blur-[0.5px]">
                     <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_16px_#22d3ee] animate-laser" />
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(34,211,238,0.08)_1px,transparent_1px)] bg-[size:100%_8px]" />
-                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-lg bg-black/85 px-3 py-1.5 text-xs font-mono text-cyan-300 border border-cyan-500/50 shadow-md">
+                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-lg bg-black/90 px-3 py-1.5 text-xs font-mono text-cyan-300 border border-cyan-500/50 shadow-md">
                       <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
                       <span className="font-bold tracking-wider">OPTICAL SCANNING IN PROGRESS</span>
                     </div>
@@ -332,7 +338,7 @@ export default function ForensicsDashboard() {
                 {!loading && (
                   <button
                     onClick={handleClearImage}
-                    className="absolute top-3 right-3 rounded-full bg-black/75 hover:bg-red-600 text-white p-1.5 shadow-md transition-colors"
+                    className="absolute top-3 right-3 rounded-full bg-slate-900/90 border border-slate-700 hover:bg-red-600 text-white p-2 shadow-md transition-colors"
                     title="Clear image"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -343,16 +349,16 @@ export default function ForensicsDashboard() {
               </div>
             ) : (
               <div className="text-center py-4 px-2">
-                <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-100 to-indigo-100 text-brand-600 mb-3 shadow-inner group-hover:scale-105 transition-transform">
+                <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 mb-3 shadow-[0_0_15px_rgba(6,182,212,0.2)] group-hover:scale-105 transition-transform">
                   <svg className="h-7 w-7 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-sm sm:text-base font-bold text-slate-800">
-                  Tap to browse or drop image here
+                <p className="text-sm sm:text-base font-bold font-mono text-slate-100">
+                  DRAG SUSPECT IMAGE HERE OR CLICK TO BROWSE
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  JPEG, PNG, WebP · WhatsApp · Phone Camera · AI Exports (up to 50MB)
+                <p className="mt-1 text-xs font-mono text-slate-400">
+                  JPEG, PNG, WebP · WhatsApp · Phone Camera · AI Exports (Zero-Retention In-Memory)
                 </p>
 
                 {/* Action Buttons */}
@@ -363,9 +369,9 @@ export default function ForensicsDashboard() {
                       e.stopPropagation();
                       suspectInputRef.current?.click();
                     }}
-                    className="rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs flex items-center gap-2 active:scale-95 transition-all hover:border-slate-300"
+                    className="rounded-xl bg-slate-850 border border-slate-700 px-4 py-2 text-xs font-mono font-semibold text-slate-200 hover:bg-slate-800 hover:border-cyan-400 shadow-xs flex items-center gap-2 active:scale-95 transition-all"
                   >
-                    📁 Browse Files
+                    📁 Select File
                   </button>
                   <button
                     type="button"
@@ -373,9 +379,9 @@ export default function ForensicsDashboard() {
                       e.stopPropagation();
                       setIsCameraOpen(true);
                     }}
-                    className="rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:from-brand-700 hover:to-indigo-700 flex items-center gap-2 active:scale-95 transition-all"
+                    className="rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 text-xs font-mono font-semibold text-white shadow-xs hover:from-cyan-500 hover:to-blue-500 flex items-center gap-2 active:scale-95 transition-all"
                   >
-                    📷 Take Photo
+                    📷 Optical Capture
                   </button>
                 </div>
               </div>
@@ -401,26 +407,26 @@ export default function ForensicsDashboard() {
 
           {/* Selected File Details Bar */}
           {suspectFile && !loading && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-950 border border-slate-800 px-3.5 py-2 text-xs font-mono">
               <div className="flex items-center gap-2 truncate">
-                <span className="text-slate-400">Selected:</span>
-                <span className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-md">{suspectFile.name}</span>
-                <span className="text-slate-400 font-mono">({(suspectFile.size / 1024).toFixed(0)} KB)</span>
+                <span className="text-slate-500">INGESTED:</span>
+                <span className="font-semibold text-cyan-300 truncate max-w-[200px] sm:max-w-md">{suspectFile.name}</span>
+                <span className="text-slate-500 font-mono">({(suspectFile.size / 1024).toFixed(0)} KB)</span>
               </div>
               <div className="flex items-center gap-2 ml-auto">
                 <button
                   type="button"
                   onClick={() => setIsCameraOpen(true)}
-                  className="rounded-lg bg-white border border-slate-200 hover:bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs transition-all flex items-center gap-1 active:scale-95"
+                  className="rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-800 px-2.5 py-1 text-xs font-mono font-semibold text-slate-300 shadow-xs transition-all flex items-center gap-1 active:scale-95"
                 >
-                  📷 Retake
+                  📷 Recapture
                 </button>
                 <button
                   type="button"
                   onClick={handleClearImage}
-                  className="text-xs font-semibold text-red-600 hover:text-red-700 underline underline-offset-2"
+                  className="text-xs font-mono font-semibold text-red-400 hover:text-red-300 underline underline-offset-2"
                 >
-                  Change Photo
+                  Clear Selection
                 </button>
               </div>
             </div>
@@ -428,8 +434,8 @@ export default function ForensicsDashboard() {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl bg-red-50 p-3.5 text-xs sm:text-sm text-red-700 border border-red-200 flex items-center gap-2">
-            <svg className="h-5 w-5 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mt-4 rounded-xl bg-red-950/70 p-3.5 text-xs sm:text-sm text-red-200 border border-red-500/50 flex items-center gap-2 font-mono">
+            <svg className="h-5 w-5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{error}</span>
@@ -525,35 +531,35 @@ export default function ForensicsDashboard() {
         )}
 
         {/* Primary Action Button */}
-        <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 pt-4">
-          <div className="text-xs text-slate-500 order-2 sm:order-1 text-center sm:text-left">
-            <span>Forensic Mode: </span>
-            <span className="font-semibold text-slate-700">Multi-Signal Provenance &amp; Physical Sensor Fusion</span>
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800 pt-4">
+          <div className="text-xs font-mono text-slate-400 order-2 sm:order-1 text-center sm:text-left">
+            <span>PIPELINE ENGINE: </span>
+            <span className="font-semibold text-cyan-400">10-STAGE MULTI-MODAL PROVENANCE FUSION</span>
           </div>
 
           <button
             onClick={handleAnalyze}
             disabled={loading || !suspectFile}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-bold text-white shadow-md transition-all order-1 sm:order-2 active:scale-95 ${
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-xs sm:text-sm font-mono font-bold text-white shadow-xl transition-all order-1 sm:order-2 active:scale-95 ${
               loading || !suspectFile
-                ? 'cursor-not-allowed bg-slate-400'
-                : 'bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 shadow-brand-500/25 hover:shadow-lg'
+                ? 'cursor-not-allowed bg-slate-800 text-slate-500 border border-slate-700'
+                : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-400/40'
             }`}
           >
             {loading ? (
               <>
-                <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                <svg className="h-4 w-4 animate-spin text-cyan-300" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <span>Analyzing Forensics… {Math.round(progress)}%</span>
+                <span>EXECUTING SPECTRAL SCAN… {Math.round(progress)}%</span>
               </>
             ) : (
               <>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-4 w-4 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <span>Run Forensic Analysis</span>
+                <span>RUN FORENSIC ANALYSIS</span>
               </>
             )}
           </button>
@@ -599,68 +605,68 @@ export default function ForensicsDashboard() {
 
             return (
               <div className="space-y-4 sm:space-y-6">
-                {/* Final Call Decision Card */}
+                {/* Final Call Decision Card - Cyber-Forensic Verdict HUD */}
                 <div
-                  className={`rounded-2xl sm:rounded-3xl border p-5 sm:p-7 shadow-sm transition-all ${
+                  className={`rounded-2xl sm:rounded-3xl border p-5 sm:p-7 shadow-2xl backdrop-blur-md transition-all ${
                     isAiGen
-                      ? 'border-purple-300 bg-gradient-to-br from-purple-50 via-white to-indigo-50'
+                      ? 'border-purple-500/60 bg-gradient-to-br from-purple-950/50 via-slate-950 to-indigo-950/40 shadow-[0_0_35px_rgba(168,85,247,0.2)]'
                       : isEnhanced
-                      ? 'border-sky-300 bg-gradient-to-br from-sky-50 via-white to-teal-50'
+                      ? 'border-sky-500/60 bg-gradient-to-br from-sky-950/50 via-slate-950 to-teal-950/40 shadow-[0_0_35px_rgba(14,165,233,0.2)]'
                       : isUserEdit
-                      ? 'border-rose-300 bg-gradient-to-br from-rose-50 via-white to-orange-50'
+                      ? 'border-rose-500/60 bg-gradient-to-br from-rose-950/50 via-slate-950 to-orange-950/40 shadow-[0_0_35px_rgba(244,63,94,0.2)]'
                       : isAiEdit
-                      ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50'
+                      ? 'border-amber-500/60 bg-gradient-to-br from-amber-950/50 via-slate-950 to-orange-950/40 shadow-[0_0_35px_rgba(245,158,11,0.2)]'
                       : isCam
-                      ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-teal-50'
-                      : 'border-slate-300 bg-white'
+                      ? 'border-emerald-500/60 bg-gradient-to-br from-emerald-950/50 via-slate-950 to-teal-950/40 shadow-[0_0_35px_rgba(16,185,129,0.2)]'
+                      : 'border-slate-800 bg-slate-950'
                   }`}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
                     <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2 font-mono">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wider uppercase ${
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black tracking-wider uppercase border ${
                             isAiGen
-                              ? 'bg-purple-200 text-purple-900'
+                              ? 'bg-purple-950/80 border-purple-400 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]'
                               : isEnhanced
-                              ? 'bg-sky-200 text-sky-900'
+                              ? 'bg-sky-950/80 border-sky-400 text-sky-300 shadow-[0_0_10px_rgba(14,165,233,0.3)]'
                               : isUserEdit
-                              ? 'bg-rose-200 text-rose-900'
+                              ? 'bg-rose-950/80 border-rose-400 text-rose-300 shadow-[0_0_10px_rgba(244,63,94,0.3)]'
                               : isAiEdit
-                              ? 'bg-amber-200 text-amber-900'
+                              ? 'bg-amber-950/80 border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
                               : isCam
-                              ? 'bg-emerald-200 text-emerald-900'
-                              : 'bg-slate-200 text-slate-800'
+                              ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                              : 'bg-slate-900 border-slate-700 text-slate-300'
                           }`}
                         >
                           <span
                             className={`h-2.5 w-2.5 rounded-full animate-ping ${
                               isAiGen
-                                ? 'bg-purple-600'
+                                ? 'bg-purple-400'
                                 : isEnhanced
-                                ? 'bg-sky-600'
+                                ? 'bg-sky-400'
                                 : isUserEdit
-                                ? 'bg-rose-600'
+                                ? 'bg-rose-400'
                                 : isAiEdit
-                                ? 'bg-amber-600'
+                                ? 'bg-amber-400'
                                 : isCam
-                                ? 'bg-emerald-600'
-                                : 'bg-slate-600'
+                                ? 'bg-emerald-400'
+                                : 'bg-slate-400'
                             }`}
                           />
                           <span>FINAL CALL: {finalTitle}</span>
                         </span>
-                        <span className="rounded-md bg-white/90 border border-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-2xs">
+                        <span className="rounded-md bg-slate-900 border border-slate-700 px-2 py-0.5 text-[11px] font-semibold text-slate-300 font-mono">
                           {finalBadge}
                         </span>
                         {result.executionMs && (
-                          <span className="text-[11px] text-slate-400 font-mono">
+                          <span className="text-[11px] text-cyan-400 font-mono">
                             ⚡ {result.executionMs} ms
                           </span>
                         )}
                       </div>
 
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <h2 className="text-2xl sm:text-3xl font-black text-slate-100 tracking-tight font-mono">
                         {isAiGen
                           ? 'Synthetic AI Media (Generated from Scratch)'
                           : isEnhanced
@@ -674,27 +680,27 @@ export default function ForensicsDashboard() {
                           : 'Digital Non-Camera Media'}
                       </h2>
 
-                      <p className="mt-1 text-xs sm:text-sm text-slate-600 leading-relaxed max-w-3xl">
+                      <p className="mt-1 text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl font-sans">
                         {result.finalCall?.description || result.summary}
                       </p>
                     </div>
 
                     {/* Export Buttons */}
-                    <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0 font-mono">
                       <button
                         onClick={handleExportPdf}
-                        className="rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-2 text-xs font-bold text-brand-700 hover:bg-brand-100 flex items-center gap-1.5 shadow-2xs transition-colors"
+                        className="rounded-xl border border-cyan-500/40 bg-cyan-950/50 px-3.5 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-900/60 flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        <span>Export PDF</span>
+                        <span>EXPORT PDF</span>
                       </button>
                       <button
                         onClick={handleExportJson}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
+                        className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-800 hover:border-slate-600 shadow-sm transition-all active:scale-95"
                       >
-                        JSON
+                        JSON RAW
                       </button>
                     </div>
                   </div>
@@ -703,25 +709,25 @@ export default function ForensicsDashboard() {
                   <div className="mt-5 pt-1">
                     <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-3">
                       {/* Real Block */}
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 sm:p-4 text-center shadow-2xs">
-                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-800">
+                      <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/30 p-3.5 sm:p-4 text-center shadow-inner font-mono">
+                        <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-400">
                           Real Image Likelihood
                         </div>
                         <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
-                          <span className="text-3xl sm:text-4xl font-black text-emerald-700">{realPct}</span>
-                          <span className="text-base font-bold text-emerald-600">%</span>
+                          <span className="text-3xl sm:text-4xl font-black text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]">{realPct}</span>
+                          <span className="text-base font-bold text-emerald-500">%</span>
                         </div>
-                        <div className="mt-1 text-[10px] sm:text-[11px] text-emerald-600 font-medium">
+                        <div className="mt-1 text-[10px] sm:text-[11px] text-emerald-400 font-medium">
                           Authentic Camera &amp; Sensor Optics
                         </div>
                       </div>
 
                       {/* AI / Edited Block */}
                       <div
-                        className={`rounded-2xl border p-3.5 sm:p-4 text-center shadow-2xs ${
+                        className={`rounded-2xl border p-3.5 sm:p-4 text-center shadow-inner font-mono ${
                           isAiGen || isAiEdit || isUserEdit
-                            ? 'border-red-300 bg-red-50/80 text-red-900'
-                            : 'border-slate-200 bg-slate-50 text-slate-700'
+                            ? 'border-red-500/50 bg-red-950/30 text-red-300'
+                            : 'border-slate-800 bg-slate-900/60 text-slate-400'
                         }`}
                       >
                         <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wider">
@@ -734,7 +740,7 @@ export default function ForensicsDashboard() {
                         <div className="mt-1 flex items-baseline justify-center gap-1 font-mono">
                           <span
                             className={`text-3xl sm:text-4xl font-black ${
-                              isAiGen || isAiEdit || isUserEdit ? 'text-red-600' : 'text-slate-800'
+                              isAiGen || isAiEdit || isUserEdit ? 'text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.4)]' : 'text-slate-300'
                             }`}
                           >
                             {aiPct}
@@ -757,9 +763,9 @@ export default function ForensicsDashboard() {
 
                     {/* Split Dual-Colored Progress Bar */}
                     <div className="relative mt-3">
-                      <div className="h-4 w-full overflow-hidden rounded-full bg-slate-200 flex shadow-inner">
+                      <div className="h-4 w-full overflow-hidden rounded-full bg-slate-950 border border-slate-800 flex shadow-inner">
                         <div
-                          className="h-full bg-emerald-500 transition-all duration-700 flex items-center justify-start pl-2 text-[10px] font-bold text-white"
+                          className="h-full bg-emerald-500 transition-all duration-700 flex items-center justify-start pl-2 text-[10px] font-bold text-white shadow-[0_0_12px_#10b981]"
                           style={{ width: `${realPct}%` }}
                           title={`Real: ${realPct}%`}
                         >
@@ -767,7 +773,7 @@ export default function ForensicsDashboard() {
                         </div>
                         <div
                           className={`h-full transition-all duration-700 flex items-center justify-end pr-2 text-[10px] font-bold text-white ${
-                            isAiGen ? 'bg-purple-600' : isUserEdit ? 'bg-rose-600' : 'bg-red-500'
+                            isAiGen ? 'bg-purple-600 shadow-[0_0_12px_#a855f7]' : isUserEdit ? 'bg-rose-600 shadow-[0_0_12px_#f43f5e]' : 'bg-red-500 shadow-[0_0_12px_#ef4444]'
                           }`}
                           style={{ width: `${aiPct}%` }}
                           title={`${isUserEdit ? 'Digitally Edited' : isAiGen ? 'AI Generated' : 'AI / Edited'}: ${aiPct}%`}
@@ -777,10 +783,10 @@ export default function ForensicsDashboard() {
                       </div>
                     </div>
 
-                    <div className="mt-2 flex justify-between text-[11px] text-slate-500 font-semibold px-1">
-                      <span className="text-emerald-700">🟢 100% Optical Sensor Match</span>
-                      <span className="text-slate-400">Total = 100% Complementary Evidence</span>
-                      <span className={isAiGen ? 'text-purple-700' : 'text-red-700'}>
+                    <div className="mt-2 flex justify-between text-[11px] font-mono text-slate-400 font-semibold px-1">
+                      <span className="text-emerald-400">🟢 100% Optical Sensor Match</span>
+                      <span className="text-slate-500">Total = 100% Complementary Evidence</span>
+                      <span className={isAiGen ? 'text-purple-400' : 'text-red-400'}>
                         🔴 100% Synthetic / Tampered
                       </span>
                     </div>
@@ -804,19 +810,19 @@ export default function ForensicsDashboard() {
           })()}
 
           {/* Forensic Invariants & Signal Telemetry Grid (Cyber-Forensics Workspace) */}
-          <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900/80 p-4 sm:p-6 shadow-2xl backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
               <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-600 animate-pulse" />
-                <h3 className="font-bold text-slate-900 text-sm sm:text-base tracking-tight">
-                  Multi-Modal Forensic Signals &amp; Sensor Telemetry
+                <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
+                <h3 className="font-bold text-slate-100 text-sm sm:text-base font-mono tracking-wide">
+                  MULTI-MODAL FORENSIC SENSORS &amp; TELEMETRY MATRIX
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-slate-700">
+                <span className="rounded-full bg-slate-950 border border-slate-800 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-slate-300">
                   {result.dimensions ? `${result.dimensions.width}×${result.dimensions.height}px` : 'Raster Frame'}
                 </span>
-                <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-mono font-bold text-indigo-700">
+                <span className="rounded-full bg-cyan-950/70 border border-cyan-500/40 px-2.5 py-0.5 text-[11px] font-mono font-bold text-cyan-400">
                   {result.evidence.length} Active Detectors
                 </span>
               </div>
@@ -828,29 +834,29 @@ export default function ForensicsDashboard() {
                 const mod = result.modality?.modality || (result.aiDetection?.label === 'DIGITAL_SCREENSHOT' ? 'SCREENSHOT' : 'NATURAL_PHOTO');
                 const conf = result.modality?.confidence !== undefined ? Math.round(result.modality.confidence * 100) : 95;
                 const modBadgeColors: Record<string, string> = {
-                  DOCUMENT: 'bg-blue-100 text-blue-800 border-blue-200',
-                  NATURAL_PHOTO: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                  SCREENSHOT: 'bg-slate-100 text-slate-800 border-slate-200',
-                  DIGITAL_GRAPHIC: 'bg-purple-100 text-purple-800 border-purple-200',
-                  MIXED_MEDIA: 'bg-amber-100 text-amber-800 border-amber-200',
+                  DOCUMENT: 'bg-blue-950/80 text-blue-300 border-blue-500/40',
+                  NATURAL_PHOTO: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
+                  SCREENSHOT: 'bg-slate-900 text-slate-300 border-slate-700',
+                  DIGITAL_GRAPHIC: 'bg-purple-950/80 text-purple-300 border-purple-500/40',
+                  MIXED_MEDIA: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
                 };
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>📑</span>
                           <span>Input Modality</span>
                         </span>
-                        <span className="font-mono text-[10px] text-slate-400">{conf}% conf</span>
+                        <span className="font-mono text-[10px] text-cyan-400">{conf}% conf</span>
                       </div>
                       <div className="mt-1">
-                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${modBadgeColors[mod] || 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${modBadgeColors[mod] || 'bg-slate-900 text-slate-300 border-slate-700'}`}>
                           {mod.replace('_', ' ')}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {result.modality?.evidence?.[0] || 'Classification verified across resolution and color distribution.'}
                     </p>
                   </div>
@@ -868,98 +874,98 @@ export default function ForensicsDashboard() {
                 const isSynthetic = cfaStatus === 'NO_CFA_PATTERN';
 
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>🧬</span>
                           <span>Bayer CFA Pattern</span>
                         </span>
-                        {pattern && <span className="font-mono text-[10px] text-slate-400">{pattern}</span>}
+                        {pattern && <span className="font-mono text-[10px] text-cyan-400">{pattern}</span>}
                       </div>
                       <div className="mt-1">
                         <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
                           isBayer
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
                             : isDiscontinuity
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            ? 'bg-amber-950/80 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
                             : isSynthetic
-                            ? 'bg-purple-100 text-purple-800 border-purple-200'
-                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                            ? 'bg-purple-950/80 text-purple-300 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.2)]'
+                            : 'bg-slate-900 text-slate-300 border-slate-700'
                         }`}>
                           {isBayer ? 'BAYER CFA CONFIRMED' : isDiscontinuity ? 'CFA DISCONTINUITY' : isSynthetic ? 'NO CFA (SYNTHETIC RGB)' : 'UNVERIFIED CFA'}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {cfaEv?.notes?.[0] || result.cfa?.evidence?.[0] || (gridRatio ? `2x2 lattice variance ratio: ${gridRatio}` : 'Physical camera sensor color filter demosaicing verified.')}
                     </p>
                   </div>
                 );
               })()}
 
-              {/* Tile 2: DQT Quantization Signature */}
+              {/* Tile 3: DQT Quantization Signature */}
               {(() => {
                 const dqtEv = result.evidence.find((e) => e.detector === 'dqt_fingerprint');
                 const matchName = dqtEv?.evidence?.match_name || (result.opticalMetadata?.hasExif ? 'Hardware Camera Profile' : 'Standard Web Encoder');
                 const isHw = dqtEv?.evidence?.match_category === 'CAMERA_HARDWARE' || Boolean(result.opticalMetadata?.make);
                 const qEst = dqtEv?.evidence?.quality_estimate;
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>💾</span>
                           <span>DQT Quantization</span>
                         </span>
-                        {qEst && <span className="font-mono text-[10px] text-slate-400">Q~{qEst}</span>}
+                        {qEst && <span className="font-mono text-[10px] text-cyan-400">Q~{qEst}</span>}
                       </div>
                       <div className="mt-1">
                         <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold truncate max-w-full ${
-                          isHw ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-700 border-slate-200'
+                          isHw ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'bg-slate-900 text-slate-300 border-slate-700'
                         }`}>
                           {matchName}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {dqtEv?.notes?.[0] || 'Discrete Cosine Transform quantization tables verified.'}
                     </p>
                   </div>
                 );
               })()}
 
-              {/* Tile 3: Sensor Noise Residual (PRNU) */}
+              {/* Tile 4: Sensor Noise Residual (PRNU) */}
               {(() => {
                 const noiseEv = result.evidence.find((e) => e.detector === 'noise_residual');
                 const stdVar = noiseEv?.evidence?.std_variance;
                 const isUniform = !noiseEv?.notes?.[0]?.includes('High noise variance') && !noiseEv?.notes?.[0]?.includes('mismatch');
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>🔬</span>
                           <span>Sensor PRNU Noise</span>
                         </span>
-                        {stdVar !== undefined && <span className="font-mono text-[10px] text-slate-400">σ={stdVar.toFixed(1)}</span>}
+                        {stdVar !== undefined && <span className="font-mono text-[10px] text-cyan-400">σ={stdVar.toFixed(1)}</span>}
                       </div>
                       <div className="mt-1">
                         <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
-                          isUniform ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                          isUniform ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'bg-amber-950/80 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
                         }`}>
                           {isUniform ? 'STATIONARY SENSOR' : 'LOCAL NOISE DISCREPANCY'}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {noiseEv?.notes?.[0] || 'Poisson-Gaussian sensor noise consistent across sensor frame.'}
                     </p>
                   </div>
                 );
               })()}
 
-              {/* Tile 4: Provenance & Container Integrity */}
+              {/* Tile 5: Provenance & Container Integrity */}
               {(() => {
                 const c2paEv = result.evidence.find((e) => e.detector === 'c2pa_parser');
                 const thumbEv = result.evidence.find((e) => e.detector === 'thumbnail_discrepancy');
@@ -968,9 +974,9 @@ export default function ForensicsDashboard() {
                 const isThumbCropped = thumbEv?.evidence?.status === 'DISCREPANCY_CROPPED';
 
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>🛡️</span>
                           <span>Container &amp; C2PA</span>
@@ -979,16 +985,16 @@ export default function ForensicsDashboard() {
                       <div className="mt-1">
                         <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
                           hasC2pa
-                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            ? 'bg-purple-950/80 text-purple-300 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.2)]'
                             : isThumbCropped
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            ? 'bg-amber-950/80 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]'
+                            : 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
                         }`}>
                           {hasC2pa ? 'C2PA MANIFEST' : isThumbCropped ? 'CROP TAMPERED' : isThumbMatch ? 'EXIF THUMBNAIL MATCH' : 'UNALTERED CONTAINER'}
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {thumbEv?.notes?.[0] || c2paEv?.notes?.[0] || 'Image container and compression header integrity verified.'}
                     </p>
                   </div>
@@ -1007,24 +1013,24 @@ export default function ForensicsDashboard() {
                 const isDiscrepancy = status === 'DEEPFAKE_FACE_DISCREPANCY';
 
                 return (
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
                     <div>
-                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                      <div className="flex items-center justify-between text-xs font-mono font-semibold text-slate-400 mb-1">
                         <span className="flex items-center gap-1.5">
                           <span>👤</span>
                           <span>Face Biometrics</span>
                         </span>
-                        {faceCount > 0 && <span className="font-mono text-[10px] text-slate-400">{faceCount} Face{faceCount > 1 ? 's' : ''}</span>}
+                        {faceCount > 0 && <span className="font-mono text-[10px] text-cyan-400">{faceCount} Face{faceCount > 1 ? 's' : ''}</span>}
                       </div>
                       <div className="mt-1">
                         <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
                           isRealFace
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
                             : isDiscrepancy
-                            ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            ? 'bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.2)]'
                             : isSynthFace
-                            ? 'bg-purple-100 text-purple-800 border-purple-200'
-                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                            ? 'bg-purple-950/80 text-purple-300 border-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.2)]'
+                            : 'bg-slate-900 text-slate-300 border-slate-700'
                         }`}>
                           {isRealFace
                             ? 'NATURAL DERMAL PORES'
@@ -1036,7 +1042,7 @@ export default function ForensicsDashboard() {
                         </span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                    <p className="mt-2 text-[11px] font-mono text-slate-400 line-clamp-2 pt-2 border-t border-slate-800/80">
                       {faceEv?.notes?.[0] || (poreVar !== undefined ? `Cheek micro-pore variance: ${poreVar.toFixed(1)}` : 'Facial skin pore anisotropy and boundary checked.')}
                     </p>
                   </div>
@@ -1093,32 +1099,32 @@ export default function ForensicsDashboard() {
             const isVerifiedSensor = hasExif && (cameraMake || cameraModel || rawExp || rawFNum || rawIso);
 
             return (
-              <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm transition-all hover:shadow-md">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900/80 p-5 sm:p-7 shadow-2xl backdrop-blur-sm transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
                   <div className="flex items-center gap-3">
                     <div className={`rounded-2xl p-2.5 sm:p-3 text-xl sm:text-2xl border ${
                       isVerifiedSensor
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                        ? 'bg-emerald-950/70 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                        : 'bg-amber-950/70 text-amber-400 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
                     }`}>
                       📷
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base sm:text-lg font-black text-slate-900">
-                          Authentic Optical &amp; Sensor Metadata (EXIF)
+                        <h3 className="text-base sm:text-lg font-black text-slate-100 font-mono">
+                          AUTHENTIC OPTICAL &amp; HARDWARE SENSOR METRICS (EXIF)
                         </h3>
                         <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider border ${
+                          className={`rounded-full px-2.5 py-0.5 text-[10px] sm:text-[11px] font-mono font-black uppercase tracking-wider border ${
                             isVerifiedSensor
-                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                              : 'bg-amber-100 text-amber-900 border-amber-300'
+                              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.25)]'
+                              : 'bg-amber-950/80 text-amber-300 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
                           }`}
                         >
                           {isVerifiedSensor ? '✓ Authentic Hardware Sensor Verified' : '⚠️ Metadata Stripped / Absent'}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5 font-mono">
                         {isVerifiedSensor
                           ? 'Physical mobile camera hardware sensor pipeline confirmed directly from embedded EXIF telemetry.'
                           : 'Standard social messaging apps (WhatsApp, Discord, Instagram) or screenshots strip metadata.'}
@@ -1126,7 +1132,7 @@ export default function ForensicsDashboard() {
                     </div>
                   </div>
 
-                  <span className="self-start sm:self-auto rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-semibold text-slate-600">
+                  <span className="self-start sm:self-auto rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1 text-xs font-mono font-semibold text-slate-400">
                     EXIF 2.2 / 2.31
                   </span>
                 </div>
@@ -1134,111 +1140,111 @@ export default function ForensicsDashboard() {
                 {isVerifiedSensor ? (
                   <div className="mt-5 space-y-4">
                     {/* Primary Grid of 6 Optical Sensor Metrics */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 font-mono">
                       {/* 1. Camera Device */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Device / Model
                         </div>
-                        <div className="mt-1 font-bold text-slate-900 text-xs sm:text-sm truncate" title={fullDevice}>
+                        <div className="mt-1 font-bold text-slate-100 text-xs sm:text-sm truncate" title={fullDevice}>
                           {fullDevice}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                           {cameraMake ? `${cameraMake} Hardware` : 'Camera Sensor'}
                         </div>
                       </div>
 
                       {/* 2. Optical Aperture */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Aperture (F-Stop)
                         </div>
-                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-emerald-700">
+                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-emerald-400">
                           {formatAperture(rawFNum)}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5">
                           Physical Iris
                         </div>
                       </div>
 
                       {/* 3. Exposure / Shutter */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Shutter Speed
                         </div>
-                        <div className="mt-1 font-mono font-black text-xs sm:text-sm text-sky-700 truncate" title={formatExp(rawExp)}>
+                        <div className="mt-1 font-mono font-black text-xs sm:text-sm text-sky-400 truncate" title={formatExp(rawExp)}>
                           {formatExp(rawExp)}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5">
                           Sensor Integration
                         </div>
                       </div>
 
                       {/* 4. ISO Sensitivity */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           ISO Sensitivity
                         </div>
-                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-purple-700">
+                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-purple-400">
                           {rawIso ? `ISO ${rawIso}` : 'Auto'}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5">
                           Analog Sensor Gain
                         </div>
                       </div>
 
                       {/* 5. Focal Length */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Focal Length
                         </div>
-                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-indigo-700">
+                        <div className="mt-1 font-mono font-black text-sm sm:text-base text-indigo-400">
                           {formatFocal(rawFocal)}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5">
                           Optical Glass
                         </div>
                       </div>
 
                       {/* 6. Capture Timestamp */}
-                      <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 shadow-sm">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                           Capture Time
                         </div>
-                        <div className="mt-1 font-mono font-bold text-slate-900 text-[11px] sm:text-xs truncate" title={dateTime ? `${dateTime} ${timeZone || ''}` : 'N/A'}>
+                        <div className="mt-1 font-mono font-bold text-slate-200 text-[11px] sm:text-xs truncate" title={dateTime ? `${dateTime} ${timeZone || ''}` : 'N/A'}>
                           {dateTime || 'Present in EXIF'}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5">
                           {timeZone ? `Timezone: ${timeZone}` : 'Hardware Clock'}
                         </div>
                       </div>
                     </div>
 
                     {/* Sensor Verification Summary Banner */}
-                    <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/90 p-3 sm:p-4 text-xs text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="rounded-xl bg-emerald-950/50 border border-emerald-500/40 p-3 sm:p-4 text-xs font-mono text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-base">🛡️</span>
                         <span>
                           <strong>Hardware Sensor Telemetry Corroboration:</strong> Embedded exposure parameters, focal length, and hardware timestamp corroborate physical optics from a genuine <strong>{fullDevice}</strong> sensor.
                         </span>
                       </div>
-                      <span className="shrink-0 font-mono text-[11px] font-semibold text-emerald-800 bg-white/80 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      <span className="shrink-0 font-mono text-[11px] font-semibold text-emerald-300 bg-emerald-950 border border-emerald-500/50 px-2 py-0.5 rounded-md">
                         Zero Synthetic Distortion
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-5 rounded-2xl bg-amber-50/70 border border-amber-200 p-4 sm:p-5 text-xs text-amber-900 space-y-2">
+                  <div className="mt-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 p-4 sm:p-5 text-xs font-mono text-amber-200 space-y-2">
                     <div className="flex items-start gap-2.5">
                       <span className="text-lg">ℹ️</span>
                       <div>
-                        <h4 className="font-bold text-amber-950 text-sm">
+                        <h4 className="font-bold text-amber-300 text-sm">
                           Why is EXIF Metadata Stripped or Absent?
                         </h4>
-                        <p className="mt-1 leading-relaxed text-amber-900/90">
+                        <p className="mt-1 leading-relaxed text-amber-200/90 font-sans">
                           When photos are saved from or shared across <strong>WhatsApp, Telegram, Discord, Instagram, Facebook</strong>, or via screenshots/screen captures, the host application automatically strips all camera EXIF headers for privacy and bandwidth compression.
                         </p>
-                        <p className="mt-2 leading-relaxed text-amber-900/90">
+                        <p className="mt-2 leading-relaxed text-amber-200/90 font-sans">
                           <strong>How our system still verifies authenticity:</strong> In the absence of metadata headers, our 10-stage pipeline automatically relies on <em>Bayer CFA demosaicing residuals</em>, <em>PRNU CMOS sensor noise stationarity</em>, and <em>2D FFT Fourier spectral decay</em> to determine if the image is genuine camera capture, user-edited, or AI-generated.
                         </p>
                       </div>
@@ -1252,69 +1258,69 @@ export default function ForensicsDashboard() {
 
 
           {/* Collapsible Technical Forensic Audit Report (Printable & Exportable) */}
-          <details className="group rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm print:block print:border-none print:p-0 print:shadow-none">
-            <summary className="flex cursor-pointer items-center justify-between font-bold text-slate-800 list-none print:hidden select-none hover:text-brand-600 transition-colors">
+          <details className="group rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900/80 p-4 sm:p-6 shadow-2xl backdrop-blur-sm print:block print:border-none print:p-0 print:shadow-none">
+            <summary className="flex cursor-pointer items-center justify-between font-bold text-slate-200 font-mono list-none print:hidden select-none hover:text-cyan-400 transition-colors">
               <div className="flex items-center gap-2.5">
-                <svg className="h-5 w-5 text-brand-600 transition-transform group-open:rotate-90 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-5 w-5 text-cyan-400 transition-transform group-open:rotate-90 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-                <span className="text-sm sm:text-base font-bold text-slate-900">
-                  Technical Forensic Audit Report &amp; Signals
+                <span className="text-sm sm:text-base font-bold text-slate-100">
+                  TECHNICAL FORENSIC AUDIT REPORT &amp; SENSORS
                 </span>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] sm:text-xs font-semibold text-slate-600 group-open:bg-brand-50 group-open:text-brand-700">
-                Click to Expand Raw Forensic Metrics
+              <span className="rounded-full bg-slate-950 border border-slate-800 px-3 py-1 text-[11px] sm:text-xs font-mono font-semibold text-slate-400 group-open:border-cyan-500/40 group-open:text-cyan-400">
+                Click to Toggle Signal Matrix
               </span>
             </summary>
 
-            <div className="mt-6 space-y-6 pt-4 border-t border-slate-100 print:mt-0 print:pt-0 print:border-none">
+            <div className="mt-6 space-y-6 pt-4 border-t border-slate-800 print:mt-0 print:pt-0 print:border-none">
               {/* Classical Forensic Signals & Quantitative Metrics */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 font-mono">
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                      Forensic Signals &amp; Detailed Values
+                    <h3 className="text-sm sm:text-base font-bold text-slate-100">
+                      FORENSIC SIGNALS &amp; QUANTITATIVE RESIDUALS
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       Multi-family physical traces (JPEG grid alignment, noise residuals, ELA, DCT, resampling, copy-move).
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 font-mono">
                   {/* Card 1: JPEG Grid Alignment */}
                   {(() => {
                     const ev = result.evidence.find((e) => e.detector === 'jpeg_grid');
                     const isMisaligned = ev?.notes?.[0]?.includes('shifted') || (ev?.evidence?.horizontal_ratio && ev.evidence.horizontal_ratio > 1.25);
                     return (
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 shadow-sm flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs sm:text-sm">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-200 text-xs sm:text-sm">
                               <span>📐</span>
                               <span>JPEG Grid Alignment</span>
                             </div>
                             <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                              isMisaligned ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'
+                              isMisaligned ? 'bg-amber-950 text-amber-300 border border-amber-500/40' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                             }`}>
                               {isMisaligned ? 'MISALIGNED' : 'ALIGNED'}
                             </span>
                           </div>
 
                           <div className="mt-3 space-y-1.5 text-xs">
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Blocking Ratio (H/V):</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.horizontal_ratio ? ev.evidence.horizontal_ratio.toFixed(2) : '1.00'} / {ev?.evidence?.vertical_ratio ? ev.evidence.vertical_ratio.toFixed(2) : '1.00'}
                               </span>
                             </div>
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Boundary Inconsistency:</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.horizontal_inconsistency ? ev.evidence.horizontal_inconsistency.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
                               {ev?.notes?.[0] || '8×8 block grid aligns with image origin.'}
                             </p>
                           </div>
@@ -1328,34 +1334,34 @@ export default function ForensicsDashboard() {
                     const ev = result.evidence.find((e) => e.detector === 'noise_residual');
                     const hasAnom = ev?.notes?.[0]?.includes('High noise variance') || ev?.notes?.[0]?.includes('mismatch');
                     return (
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 shadow-sm flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs sm:text-sm">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-200 text-xs sm:text-sm">
                               <span>📊</span>
                               <span>Noise Residual (PRNU)</span>
                             </div>
                             <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                              hasAnom ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'
+                              hasAnom ? 'bg-amber-950 text-amber-300 border border-amber-500/40' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                             }`}>
                               {hasAnom ? 'LOCAL ANOMALY' : 'UNIFORM SENSOR'}
                             </span>
                           </div>
 
                           <div className="mt-3 space-y-1.5 text-xs">
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Mean Variance:</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.mean_variance ? ev.evidence.mean_variance.toFixed(2) : '—'}
                               </span>
                             </div>
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Variance Std Dev:</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.std_variance ? ev.evidence.std_variance.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
                               {ev?.notes?.[0] || 'High-pass noise distribution consistent across scene.'}
                             </p>
                           </div>
@@ -1369,34 +1375,34 @@ export default function ForensicsDashboard() {
                     const ev = result.evidence.find((e) => e.detector === 'ela');
                     const isHigh = ev?.notes?.[0]?.includes('Elevated') || (ev?.evidence?.mean_error && ev.evidence.mean_error > 8.0);
                     return (
-                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs flex flex-col justify-between">
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 shadow-sm flex flex-col justify-between">
                         <div>
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs sm:text-sm">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-200 text-xs sm:text-sm">
                               <span>🔍</span>
                               <span>Error Level Analysis (ELA)</span>
                             </div>
                             <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                              isHigh ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-700'
+                              isHigh ? 'bg-amber-950 text-amber-300 border border-amber-500/40' : 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
                             }`}>
                               {isHigh ? 'ELEVATED ERROR' : 'CONSISTENT'}
                             </span>
                           </div>
 
                           <div className="mt-3 space-y-1.5 text-xs">
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Recompression Mean:</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.mean_error ? ev.evidence.mean_error.toFixed(2) : '—'}
                               </span>
                             </div>
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-slate-400">
                               <span>Peak Region Error:</span>
-                              <span className="font-mono font-medium text-slate-800">
+                              <span className="font-mono font-medium text-cyan-300">
                                 {ev?.evidence?.max_error ? ev.evidence.max_error.toFixed(1) : '—'}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                            <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-800/80">
                               {ev?.notes?.[0] || 'Error level consistent across compression blocks.'}
                             </p>
                           </div>
@@ -1409,17 +1415,17 @@ export default function ForensicsDashboard() {
 
               {/* Localized Tampered Regions Table (Only shown if regions exist) */}
               {result.regions.length > 0 && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs">
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                    Localized Tampered Regions ({result.regions.length})
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 shadow-sm font-mono">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-100">
+                    LOCALIZED TAMPERED REGIONS ({result.regions.length})
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-400">
                     Suspected manipulated areas segmented with bounding coordinates and guessed edit families.
                   </p>
 
-                  <div className="mt-3 overflow-x-auto rounded-lg border border-slate-100">
+                  <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-[11px] font-semibold uppercase text-slate-500">
+                      <thead className="bg-slate-900 text-[11px] font-semibold uppercase text-slate-400 border-b border-slate-800">
                         <tr>
                           <th className="px-3 py-2.5">Region</th>
                           <th className="px-3 py-2.5">Edit Type</th>
@@ -1428,18 +1434,18 @@ export default function ForensicsDashboard() {
                           <th className="px-3 py-2.5">Bounding Box [x, y, w, h]</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 font-mono">
+                      <tbody className="divide-y divide-slate-800 font-mono">
                         {result.regions.map((reg) => (
-                          <tr key={reg.id} className="hover:bg-slate-50/70">
-                            <td className="px-3 py-2.5 font-bold text-slate-800">{reg.id}</td>
+                          <tr key={reg.id} className="hover:bg-slate-900/60 transition-colors">
+                            <td className="px-3 py-2.5 font-bold text-cyan-300">{reg.id}</td>
                             <td className="px-3 py-2.5">
-                              <span className="rounded bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">
+                              <span className="rounded bg-amber-950 border border-amber-500/40 px-2 py-0.5 font-semibold text-amber-300">
                                 {reg.editTypeGuess}
                               </span>
                             </td>
-                            <td className="px-3 py-2.5 text-slate-700">{reg.areaPct}%</td>
-                            <td className="px-3 py-2.5 text-slate-700">{(reg.confidence * 100).toFixed(0)}%</td>
-                            <td className="px-3 py-2.5 text-slate-500">
+                            <td className="px-3 py-2.5 text-slate-300">{reg.areaPct}%</td>
+                            <td className="px-3 py-2.5 text-emerald-400">{(reg.confidence * 100).toFixed(0)}%</td>
+                            <td className="px-3 py-2.5 text-slate-400">
                               [{reg.bbox.x}, {reg.bbox.y}, {reg.bbox.w}, {reg.bbox.h}]
                             </td>
                           </tr>
@@ -1451,17 +1457,17 @@ export default function ForensicsDashboard() {
               )}
 
               {/* Detector Evidence Breakdown Table */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xs">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  Detector Evidence Breakdown
+              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 sm:p-5 shadow-sm font-mono">
+                <h3 className="text-sm sm:text-base font-bold text-slate-100">
+                  DETECTOR EVIDENCE BREAKDOWN
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-400">
                   Output from all independent forensic detectors, strictly tagged as [PROVEN] or [EXPERIMENTAL].
                 </p>
 
-                <div className="mt-3 overflow-x-auto rounded-lg border border-slate-100">
+                <div className="mt-3 overflow-x-auto rounded-lg border border-slate-800">
                   <table className="w-full text-left text-xs min-w-[500px]">
-                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase text-slate-500">
+                    <thead className="bg-slate-900 text-[11px] font-semibold uppercase text-slate-400 border-b border-slate-800">
                       <tr>
                         <th className="px-3 py-2.5">Detector</th>
                         <th className="px-3 py-2.5">Category</th>
@@ -1470,26 +1476,26 @@ export default function ForensicsDashboard() {
                         <th className="px-3 py-2.5">Notes</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-800">
                       {result.evidence.map((ev, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/70">
-                          <td className="px-3 py-2.5 font-semibold text-slate-800">{ev.detector}</td>
-                          <td className="px-3 py-2.5 text-slate-500">{ev.category}</td>
+                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold text-cyan-300">{ev.detector}</td>
+                          <td className="px-3 py-2.5 text-slate-400">{ev.category}</td>
                           <td className="px-3 py-2.5">
                             <span
                               className={`rounded px-2 py-0.5 font-bold text-[10px] ${
                                 ev.tag.includes('PROVEN')
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-purple-100 text-purple-800'
+                                  ? 'bg-emerald-950 border border-emerald-500/40 text-emerald-300'
+                                  : 'bg-purple-950 border border-purple-500/40 text-purple-300'
                               }`}
                             >
                               [{ev.tag}]
                             </span>
                           </td>
-                          <td className="px-3 py-2.5 font-mono text-slate-700">
+                          <td className="px-3 py-2.5 font-mono text-slate-300">
                             {ev.score !== null ? ev.score.toFixed(3) : '—'}
                           </td>
-                          <td className="px-3 py-2.5 text-slate-600 text-[11px]">
+                          <td className="px-3 py-2.5 text-slate-400 text-[11px]">
                             {(() => {
                               const cleanNotes = ev.notes?.filter(
                                 (n) =>

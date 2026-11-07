@@ -317,7 +317,7 @@ export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps>
         <div className="pointer-events-none absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-cyan-500/60" />
 
         {/* Live Coordinate HUD Overlay (Top Left of Canvas) */}
-        <div className="pointer-events-none absolute top-4 left-5 z-20 flex flex-col gap-1 font-mono text-[11px] text-slate-400 bg-slate-950/80 p-2 rounded-lg border border-slate-800 backdrop-blur-xs">
+        <div className="pointer-events-none absolute top-4 left-5 z-20 flex flex-col gap-1 font-mono text-[11px] text-slate-400 bg-slate-950/80 p-2 rounded-lg border border-slate-800 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <span className="text-cyan-400 font-bold">X:</span>
             <span className="w-10 text-right text-slate-100">{isHovering ? cursorPos.x : '---'}</span>
