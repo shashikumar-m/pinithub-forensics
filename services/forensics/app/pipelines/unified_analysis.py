@@ -839,7 +839,8 @@ def run_unified_analysis(
             has_unbroken_camera_cfa
             and not has_classical_corroboration
             and not has_ai_provenance
-            and (has_natural_freq or p50_num < 0.20)
+            and has_natural_freq
+            and p50_num < 0.20
             and ela_score_val < 0.15
             and len(copy_points) == 0
         )

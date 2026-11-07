@@ -60,7 +60,7 @@ def test_full_ai_image_calibration():
         os.environ["AI_WEIGHTS_PATH"] = weights_path
         reset_ai_model_loader()
         get_ai_segmentation_model(weights_path)
-        for target_name in ["Img_028.jpg", "Img_030.jpg", "Img_070.jpg", "Img_077.jpg"]:
+        for target_name in ["Img_028.jpg", "Img_030.jpg", "Img_070.jpg", "Img_077.jpg", "image.png", "image copy.png"]:
             target = os.path.join(root, target_name)
             if os.path.exists(target):
                 with open(target, "rb") as f:
