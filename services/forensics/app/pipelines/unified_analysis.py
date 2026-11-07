@@ -38,6 +38,7 @@ from app.detectors.thumbnail_discrepancy import get_thumbnail_discrepancy_detect
 from app.detectors.chromatic_aberration import get_chromatic_aberration_detector
 from app.detectors.corneal_reflection import get_corneal_reflection_detector
 from app.detectors.cfa_demosaicing import get_cfa_demosaicing_detector
+from app.detectors.face_biometrics import get_face_biometrics_detector
 from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
@@ -437,6 +438,27 @@ def run_unified_analysis(
     except Exception as e:
         logger.debug("CFA demosaicing detector failed: %s", e)
 
+    # 2f. Facial Biometric & Micro-Skin Texture Checker
+    try:
+        face_det = get_face_biometrics_detector()
+        face_res = face_det.timed_run("", image_bytes=active_suspect_bytes)
+        face_dict = face_res.to_dict()
+        all_detector_results["face_biometrics"] = face_dict
+        face_details = face_dict.get("details", {})
+        if face_details.get("status") != "NO_FACES_DETECTED":
+            evidence_list.append({
+                "detector": "face_biometrics",
+                "version": face_res.version,
+                "category": "AI_GENERATED",
+                "score": face_res.score,
+                "reliability": 0.90,
+                "tag": "PROVEN",
+                "notes": face_details.get("evidence", [])[:2],
+                "evidence": face_details,
+            })
+    except Exception as e:
+        logger.debug("Face biometrics detector failed: %s", e)
+
     # 3. AI Detector
     ai_status = "UNAVAILABLE"
     ai_score = 0.0
@@ -716,6 +738,8 @@ def run_unified_analysis(
     resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
     cfa_details = all_detector_results.get("cfa_demosaicing", {}).get("details", {})
     cfa_status = cfa_details.get("status")
+    face_details = all_detector_results.get("face_biometrics", {}).get("details", {})
+    face_status = face_details.get("status")
     has_classical_corroboration = (
         ela_score_val > 0.18
     ) or (
@@ -724,6 +748,8 @@ def run_unified_analysis(
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
     ) or (
         cfa_status == "CFA_DISCONTINUITY"
+    ) or (
+        face_status == "DEEPFAKE_FACE_DISCREPANCY"
     ) or (
         ela_score_val >= 0.05 and noise_std_val > 200.0 and (1 <= len(regions) <= 4) and affected_area_pct < 10.0
     )
@@ -977,6 +1003,7 @@ def run_unified_analysis(
         },
         "modality": modality_info,
         "cfa": all_detector_results.get("cfa_demosaicing", {}).get("details"),
+        "faceBiometrics": all_detector_results.get("face_biometrics", {}).get("details"),
         "opticalMetadata": {
             "hasExif": has_exif,
             "make": camera_make,

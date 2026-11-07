@@ -74,6 +74,16 @@ export interface ForensicsAnalysisResult {
     p_spectrum_peak?: number;
     evidence?: string[];
   };
+  faceBiometrics?: {
+    status?: string;
+    face_count?: number;
+    pore_variance_mean?: number;
+    pore_noise_ratio?: number;
+    bilateral_cheek_symmetry?: number;
+    boundary_discontinuity?: number;
+    teeth_periodicity?: number | null;
+    evidence?: string[];
+  };
   opticalMetadata?: {
     hasExif: boolean;
     make?: string | null;
@@ -812,7 +822,7 @@ export default function ForensicsDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {/* Tile 1: Modality Classification */}
               {(() => {
                 const mod = result.modality?.modality || (result.aiDetection?.label === 'DIGITAL_SCREENSHOT' ? 'SCREENSHOT' : 'NATURAL_PHOTO');
@@ -980,6 +990,54 @@ export default function ForensicsDashboard() {
                     </div>
                     <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
                       {thumbEv?.notes?.[0] || c2paEv?.notes?.[0] || 'Image container and compression header integrity verified.'}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Tile 6: Face Biometrics & Dermal Micro-Texture */}
+              {(() => {
+                const faceEv = result.evidence.find((e) => e.detector === 'face_biometrics');
+                const faceDetails = result.faceBiometrics || faceEv?.evidence;
+                const status = faceDetails?.status || 'NO_FACES_DETECTED';
+                const faceCount = faceDetails?.face_count ?? 0;
+                const poreVar = faceDetails?.pore_variance_mean;
+                const isRealFace = status === 'NATURAL_BIOMETRIC_VERIFIED';
+                const isSynthFace = status === 'SYNTHETIC_FACIAL_ARTIFACTS';
+                const isDiscrepancy = status === 'DEEPFAKE_FACE_DISCREPANCY';
+
+                return (
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-3.5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span>👤</span>
+                          <span>Face Biometrics</span>
+                        </span>
+                        {faceCount > 0 && <span className="font-mono text-[10px] text-slate-400">{faceCount} Face{faceCount > 1 ? 's' : ''}</span>}
+                      </div>
+                      <div className="mt-1">
+                        <span className={`inline-block rounded-md border px-2 py-0.5 text-[11px] font-mono font-bold ${
+                          isRealFace
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            : isDiscrepancy
+                            ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : isSynthFace
+                            ? 'bg-purple-100 text-purple-800 border-purple-200'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          {isRealFace
+                            ? 'NATURAL DERMAL PORES'
+                            : isDiscrepancy
+                            ? 'DEEPFAKE DISCREPANCY'
+                            : isSynthFace
+                            ? 'SYNTHETIC SKIN PORES'
+                            : 'NO FACES IN FRAME'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500 line-clamp-2 pt-2 border-t border-slate-200/60">
+                      {faceEv?.notes?.[0] || (poreVar !== undefined ? `Cheek micro-pore variance: ${poreVar.toFixed(1)}` : 'Facial skin pore anisotropy and boundary checked.')}
                     </p>
                   </div>
                 );
