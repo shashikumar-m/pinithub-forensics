@@ -149,9 +149,14 @@ def analyze_face_biometrics(img_bgr: np.ndarray) -> FaceBiometricResult:
     # Diagnostic Evaluation
     # Real camera portraits typically exhibit pore_var in [15.0 .. 500.0] and pore_ratio <= 0.15
     # AI synthetic faces either exhibit excessive generative noise (pore_var > 650.0 or pore_ratio >= 0.16)
-    # or extreme plastic over-smoothing (pore_var < 5.0)
-    is_excessive_ai_noise = mean_pore_var > 650.0 or pore_ratio >= 0.16
-    is_waxy_plastic_skin = mean_pore_var < 8.0 and pore_ratio < 0.03
+    # or extreme plastic over-smoothing (pore_var < 5.0).
+    # NOTE: Microscopic dermal pore analysis is physically valid ONLY when face resolution is high enough
+    # to image dermal skin structure (min(fw, fh) >= 160 px). For smaller faces in group photos (e.g. 50-70px),
+    # cheek patches are under 20x20 pixels and intersect macroscopic facial anatomy (glasses, eyes, smile lines,
+    # facial hair), which produces severe false-positive Laplacian variance spikes on authentic human faces.
+    is_high_res_face = min(fw, fh) >= 160
+    is_excessive_ai_noise = is_high_res_face and (mean_pore_var > 650.0 or pore_ratio >= 0.16)
+    is_waxy_plastic_skin = is_high_res_face and (mean_pore_var < 8.0 and pore_ratio < 0.03)
     is_boundary_splice = boundary_discontinuity > 0.65
 
     if is_boundary_splice:
@@ -171,9 +176,15 @@ def analyze_face_biometrics(img_bgr: np.ndarray) -> FaceBiometricResult:
         )
     else:
         status = "NATURAL_BIOMETRIC_VERIFIED"
-        evidence.append(
-            f"Natural human dermal pore micro-texture verified (variance: {mean_pore_var:.1f}, entropy: {mean_entropy:.2f}, cheek symmetry: {cheek_sym:.2f})."
-        )
+        if is_high_res_face:
+            evidence.append(
+                f"Natural human dermal pore micro-texture verified (variance: {mean_pore_var:.1f}, entropy: {mean_entropy:.2f}, cheek symmetry: {cheek_sym:.2f})."
+            )
+        else:
+            evidence.append(
+                f"Natural facial biometrics and boundary continuity verified across {len(faces)} face(s) (face resolution: {fw}x{fh}px; boundary continuity: {1.0 - boundary_discontinuity:.2f})."
+            )
+
 
     return FaceBiometricResult(
         status=status,

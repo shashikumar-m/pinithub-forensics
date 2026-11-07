@@ -551,8 +551,8 @@ class AIDetector(BaseDetector):
             (p50 >= 0.40 and mean_all >= 0.30 and p75 >= 0.70)
             or (p50 >= 0.50)
             or (p75 >= 0.65 and p90 >= 0.85 and mean_all >= 0.25 and max_region_conf >= 0.85)
-            or (p90 >= 0.75 and max_region_conf >= 0.80 and (p75 >= 0.20 or total_edited_area >= 12.0 or mean_all >= 0.14))
-            or (max_region_conf >= 0.85 and p90 >= 0.85 and mean_all >= 0.25 and (p75 >= 0.50 or total_edited_area >= 15.0))
+            or (p75 >= 0.30 and p90 >= 0.85 and mean_all >= 0.22 and max_region_conf >= 0.85)
+            or (max_region_conf >= 0.85 and p90 >= 0.85 and mean_all >= 0.25 and p75 >= 0.50)
         ):
             image_level_label = "AI_GENERATED"
             status = "AI_GENERATED"
@@ -561,23 +561,31 @@ class AIDetector(BaseDetector):
                 f"Global AI-generator artifacts identified across image (mean: {mean_all:.2f}, p50: {p50:.2f}, p75: {p75:.2f}, p95: {p95:.2f}) — consistent with fully AI-generated image."
             )
             regions = raw_regions
-        # 4b. Natural photographic scene: scattered micro-activations across faces, skin, or natural clothing
-        # An authentic camera capture with human subjects or complex scene textures exhibits neural noise chatter
+        # 4b. Natural photographic scene: authentic camera capture with human subjects or complex scene textures
+        # Authentic camera captures (e.g. group portraits, social media photos from Instagram/WhatsApp)
+        # exhibit low median neural activations (p50 < 0.20), natural optical frequency decay (freq_score <= 0.10),
+        # stationary CMOS sensor noise (noise_var_std < 145.0), and detected human faces.
+        # Spurious neural activations on dark fabrics/trousers or scattered micro-fragments are identified as non-generative.
         elif (
-            len(raw_regions) > 5
-            and p50 < 0.20
-            and total_edited_area < 15.0
-            and p90 < 0.70
-            and max_region_conf < 0.85
-            and (noise_var_std < 140.0 or has_camera_hardware_exif or has_face)
+            p50 < 0.20
+            and freq_score <= 0.10
+            and (noise_var_std < 145.0 or has_camera_hardware_exif)
+            and not (has_ai_provenance_meta or has_canva_meta)
+            and (
+                total_edited_area >= 15.0
+                or (len(raw_regions) > 5 and max_region_conf < 0.85)
+            )
         ):
             image_level_label = "LIKELY_REAL"
             status = "NO_AI_EVIDENCE"
             global_score = 0.05
             regions = []
             evidence.append(
-                f"Scattered micro-activations ({len(raw_regions)} candidate fragments across natural skin, facial features, or clothing) verified as natural texture and illumination variations rather than localized generative inpainting."
+                f"Authentic camera portrait/photograph verified ({len(raw_regions)} candidate activations across dark textiles, facial contours, or background verified as non-generative; natural 1/f decay, sensor noise std: {noise_var_std:.1f})."
             )
+
+
+
         # 5. Candidate localized inpainting / editing (e.g. localized splice or edit)
         elif max_region_conf >= 0.70 and (1 <= len(raw_regions) <= 25) and (total_edited_area < 25.0):
             image_level_label = "AI_EDITED_LOCAL"

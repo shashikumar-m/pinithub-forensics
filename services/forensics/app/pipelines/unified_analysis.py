@@ -830,22 +830,25 @@ def run_unified_analysis(
         # even when background is plain, and must remain FULL_AI_GENERATED.
         has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
 
-        # Physical Camera Hardware & CFA Invariance Override:
-        # An authentic physical CMOS/CCD camera sensor produces an unbroken Bayer demosaicing lattice
-        # with low grid CV (<0.012), natural 1/f frequency decay, low ELA score, and no copy-move points.
-        # Deep neural segmentation activations on dark/smooth clothing or shadows on such photos
-        # are uncorroborated false positives.
-        has_camera_hardware_cfa = (
-            has_unbroken_camera_cfa
+        # Physical Camera Sensor & Biological Verification Override:
+        # An authentic physical camera capture is proven when:
+        # 1. Natural optical 1/f frequency decay (no periodic diffusion lattice)
+        # 2. Low canvas median activation (p50 < 0.20, meaning >50% of the image is non-generative)
+        # 3. Clean classical forensics (low ELA score < 0.18, no copy-move duplication points)
+        # 4. No AI provenance metadata
+        # 5. Corroborated by EITHER an unbroken Bayer CFA pattern OR verified natural human facial biometrics
+        #    with stationary CMOS sensor noise (noise_std < 145.0).
+        has_camera_hardware_or_biometrics = (
+            (has_unbroken_camera_cfa or (face_status == "NATURAL_BIOMETRIC_VERIFIED" and noise_std_val < 145.0))
             and not has_classical_corroboration
             and not has_ai_provenance
             and has_natural_freq
             and p50_num < 0.20
-            and ela_score_val < 0.15
+            and ela_score_val < 0.18
             and len(copy_points) == 0
         )
 
-        if has_camera_hardware_cfa:
+        if has_camera_hardware_or_biometrics:
             classification = "CAMERA_CAPTURED"
             verdict = "NOT_EDITED"
             ai_score = 0.03
@@ -914,7 +917,7 @@ def run_unified_analysis(
     if is_screenshot:
         calibrated_prob = 0.02
     elif classification == "CAMERA_CAPTURED":
-        calibrated_prob = round(max(0.02, min(0.05, ai_score)), 2)
+        calibrated_prob = 0.03
     elif classification == "DIGITALLY_ENHANCED":
         calibrated_prob = 0.12
     elif classification == "AI_GENERATED":
