@@ -506,6 +506,7 @@ class AIDetector(BaseDetector):
         # Saturated dyed fabrics, woven sarees, embroidery, or metallic patterns can produce elevated neural activations (p50 >= 0.50)
         # on the cloth. However, stationary CMOS sensor noise (noise_var_std < 150, noise_var_mean < 120), natural 1/f frequency decay (freq_score <= 0.08),
         # high Bayer CFA correlation (res_min_corr >= 0.70), non-square camera aspect ratio (< 0.95), and camera resolution (>= 1MP) prove physical camera optical capture.
+        # Must not override when salient subjects exhibit confident synthetic generation (p90 >= 0.75 or p95 >= 0.85).
         elif (
             pre.original_width * pre.original_height >= 1_000_000
             and (min(pre.original_width, pre.original_height) / max(pre.original_width, pre.original_height) < 0.95)
@@ -514,6 +515,8 @@ class AIDetector(BaseDetector):
             and noise_var_std < 150.0
             and noise_var_mean < 120.0
             and res_min_corr >= 0.70
+            and p90 < 0.75
+            and p95 < 0.85
         ):
             image_level_label = "LIKELY_REAL"
             status = "NO_AI_EVIDENCE"

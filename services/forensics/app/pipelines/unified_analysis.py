@@ -755,7 +755,11 @@ def run_unified_analysis(
     )
 
     # 4-Class Classification per Master Prompt Section 2
-    is_cam = (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
+    is_cam = (
+        (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
+        and not has_classical_corroboration
+        and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
+    )
     is_screenshot = (ai_details.get("image_level_label") == "DIGITAL_SCREENSHOT")
     has_ai_provenance = (
         ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
@@ -875,6 +879,13 @@ def run_unified_analysis(
         else:
             classification = "EDITED"
         verdict = "EDITED"
+    elif face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY"):
+        # Synthetic biometric artifacts detected on human face:
+        # Micro-texture noise ratio and skin pore inconsistencies confirm Generative AI synthesis.
+        classification = "AI_GENERATED"
+        verdict = "EDITED"
+        if ai_score < 0.85:
+            ai_score = 0.95
     elif is_cam and len(regions) == 0:
         classification = "CAMERA_CAPTURED"
         verdict = "NOT_EDITED"
