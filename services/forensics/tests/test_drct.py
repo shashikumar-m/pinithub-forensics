@@ -36,3 +36,4 @@ def test_drct_inference_ai_vs_camera():
         assert res_ai.score is not None
         assert res_ai.score > 0.50
         assert res_ai.details.get("status") in ("AI_DIFFUSION_DETECTED", "INCONCLUSIVE")
+

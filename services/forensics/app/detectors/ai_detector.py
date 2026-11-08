@@ -565,17 +565,14 @@ class AIDetector(BaseDetector):
         # 4b. Natural photographic scene: authentic camera capture with human subjects or complex scene textures
         # Authentic camera captures (e.g. group portraits, social media photos from Instagram/WhatsApp)
         # exhibit low median neural activations (p50 < 0.20), natural optical frequency decay (freq_score <= 0.10),
-        # stationary CMOS sensor noise (noise_var_std < 145.0), and detected human faces.
+        # stationary CMOS sensor noise (noise_var_std < 145.0), and low candidate activation confidence.
         # Spurious neural activations on dark fabrics/trousers or scattered micro-fragments are identified as non-generative.
         elif (
             p50 < 0.20
             and freq_score <= 0.10
             and (noise_var_std < 145.0 or has_camera_hardware_exif)
             and not (has_ai_provenance_meta or has_canva_meta)
-            and (
-                total_edited_area >= 15.0
-                or (len(raw_regions) > 5 and max_region_conf < 0.85)
-            )
+            and (len(raw_regions) > 5 and max_region_conf < 0.80 and p95 < 0.85)
         ):
             image_level_label = "LIKELY_REAL"
             status = "NO_AI_EVIDENCE"

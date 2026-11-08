@@ -788,6 +788,8 @@ def run_unified_analysis(
     resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
     cfa_details = all_detector_results.get("cfa_demosaicing", {}).get("details", {})
     cfa_status = cfa_details.get("status")
+    cfa_score_val = float(all_detector_results.get("cfa_demosaicing", {}).get("score") or 0.0)
+    corneal_score_val = float(all_detector_results.get("corneal_reflection", {}).get("score") or 0.0)
     face_details = all_detector_results.get("face_biometrics", {}).get("details", {})
     face_status = face_details.get("status")
     has_classical_corroboration = (
@@ -797,7 +799,11 @@ def run_unified_analysis(
     ) or (
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
     ) or (
-        cfa_status == "CFA_DISCONTINUITY"
+        cfa_status in ("CFA_DISCONTINUITY", "NO_BAYER_CFA_DETECTED")
+    ) or (
+        cfa_score_val >= 0.70
+    ) or (
+        corneal_score_val >= 0.25
     ) or (
         face_status in ("DEEPFAKE_FACE_DISCREPANCY", "SYNTHETIC_FACIAL_ARTIFACTS")
     ) or (
@@ -809,6 +815,8 @@ def run_unified_analysis(
         (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
         and not has_classical_corroboration
         and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
+        and cfa_score_val < 0.60
+        and corneal_score_val < 0.25
     )
     is_screenshot = (ai_details.get("image_level_label") == "DIGITAL_SCREENSHOT")
     has_ai_provenance = (
@@ -855,6 +863,7 @@ def run_unified_analysis(
             and (
                 face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
                 or (p95_num >= 0.95 and noise_std_val > 145.0)
+                or (cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85))
             )
         )
         if is_full_ai_subject:
@@ -955,6 +964,13 @@ def run_unified_analysis(
     elif face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY"):
         # Synthetic biometric artifacts detected on human face:
         # Micro-texture noise ratio and skin pore inconsistencies confirm Generative AI synthesis.
+        classification = "AI_GENERATED"
+        verdict = "EDITED"
+        if ai_score < 0.85:
+            ai_score = 0.95
+    elif not has_camera_hardware_exif and cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85):
+        # Physical camera sensor checks confirm software RGB synthesis (no Bayer demosaicing),
+        # corroborated by AI pupil/corneal deformation or high neural peak activations.
         classification = "AI_GENERATED"
         verdict = "EDITED"
         if ai_score < 0.85:
