@@ -817,6 +817,14 @@ def run_unified_analysis(
     corneal_score_val = float(all_detector_results.get("corneal_reflection", {}).get("score") or 0.0)
     face_details = all_detector_results.get("face_biometrics", {}).get("details", {})
     face_status = face_details.get("status")
+    dire_score_val = float(all_detector_results.get("dire", {}).get("score") or 0.0)
+    drct_score_val = float(all_detector_results.get("drct", {}).get("score") or 0.0)
+    univfd_score_val = float(all_detector_results.get("univfd", {}).get("score") or 0.0)
+    has_generative_ai_evidence = (
+        dire_score_val >= 0.75
+        or drct_score_val >= 0.75
+        or univfd_score_val >= 0.75
+    )
     has_classical_corroboration = (
         ela_score_val > 0.18
     ) or (
@@ -839,6 +847,7 @@ def run_unified_analysis(
     is_cam = (
         (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
         and not has_classical_corroboration
+        and not has_generative_ai_evidence
         and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
         and cfa_score_val < 0.60
         and corneal_score_val < 0.25
@@ -1000,6 +1009,14 @@ def run_unified_analysis(
         verdict = "EDITED"
         if ai_score < 0.85:
             ai_score = 0.95
+    elif has_generative_ai_evidence and not has_camera_hardware_exif:
+        # Deep generative manifold confirmed by DIRE (diffusion reconstruction error),
+        # DRCT (contrastive diffusion training), or UnivFD (universal fake detection)
+        # with no physical camera hardware EXIF.
+        classification = "AI_GENERATED"
+        verdict = "EDITED"
+        if ai_score < 0.85:
+            ai_score = max(0.95, dire_score_val, drct_score_val, univfd_score_val)
     elif is_cam and len(regions) == 0:
         classification = "CAMERA_CAPTURED"
         verdict = "NOT_EDITED"

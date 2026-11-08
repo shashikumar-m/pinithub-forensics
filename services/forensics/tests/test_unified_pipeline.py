@@ -173,6 +173,31 @@ def test_img_028_synthetic_image_calibration():
         assert res["dualScore"]["aiPercentage"] == 97.0
 
 
+def test_img_023_synthetic_diffusion_calibration():
+    """Verify that dark synthetic diffusion images (Img_023) are correctly identified as FULL AI GENERATED via DIRE ensemble."""
+    import os
+    from app.models.ai_model_registry import reset_ai_model_loader
+    from app.models.ai_segmentation import get_ai_segmentation_model
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    weights_path = os.path.join(root, "models", "ai_detector_v1.pth")
+    target_path = os.path.join(root, "Img_023.jpg")
+
+    if os.path.exists(weights_path) and os.path.exists(target_path):
+        os.environ["AI_WEIGHTS_PATH"] = weights_path
+        reset_ai_model_loader()
+        get_ai_segmentation_model(weights_path)
+        with open(target_path, "rb") as f:
+            data = f.read()
+        res = run_unified_analysis(data)
+        assert res["classification"] == "AI_GENERATED"
+        assert res["verdict"] == "EDITED"
+        assert res["finalCall"]["verdict"] == "FULL_AI_GENERATED"
+        assert res["dualScore"]["aiPercentage"] >= 95.0
+        assert res["dualScore"]["realPercentage"] <= 5.0
+
+
+
 
 
 
