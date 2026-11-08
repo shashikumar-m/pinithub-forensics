@@ -40,6 +40,7 @@ from app.detectors.corneal_reflection import get_corneal_reflection_detector
 from app.detectors.cfa_demosaicing import get_cfa_demosaicing_detector
 from app.detectors.face_biometrics import get_face_biometrics_detector
 from app.detectors.univfd import get_univfd_detector
+from app.detectors.drct import get_drct_detector
 from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
@@ -541,6 +542,30 @@ def run_unified_analysis(
             })
     except Exception as e:
         logger.debug("UnivFD detector failed: %s", e)
+
+    # 3c. Diffusion Reconstruction Contrastive Detector (DRCT - ICML 2024 ConvNeXt)
+    drct_score: Optional[float] = None
+    drct_details: dict[str, Any] = {}
+    try:
+        drct_det = get_drct_detector()
+        drct_res = drct_det.timed_run("", image_bytes=active_suspect_bytes)
+        drct_dict = drct_res.to_dict()
+        all_detector_results["drct"] = drct_dict
+        drct_details = drct_dict.get("details", {})
+        drct_score = drct_dict.get("score")
+        if drct_score is not None:
+            evidence_list.append({
+                "detector": "drct",
+                "version": drct_res.version,
+                "category": "AI_GENERATED",
+                "score": round(drct_score, 4),
+                "reliability": 0.85,
+                "tag": "PROVEN",
+                "notes": drct_details.get("evidence", [])[:2],
+                "evidence": drct_details,
+            })
+    except Exception as e:
+        logger.debug("DRCT detector failed: %s", e)
 
     # 4. Reference Comparison & Crop Detection (if Reference Image provided)
     crop_info: Optional[dict] = None
@@ -1095,6 +1120,8 @@ def run_unified_analysis(
         "modality": modality_info,
         "cfa": all_detector_results.get("cfa_demosaicing", {}).get("details"),
         "faceBiometrics": all_detector_results.get("face_biometrics", {}).get("details"),
+        "univfd": all_detector_results.get("univfd", {}).get("details"),
+        "drct": all_detector_results.get("drct", {}).get("details"),
         "opticalMetadata": {
             "hasExif": has_exif,
             "make": camera_make,
