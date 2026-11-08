@@ -14,6 +14,7 @@ from app.detectors.jpeg_grid import JPEGGridDetector, get_jpeg_grid_detector
 from app.detectors.copy_move import CopyMoveDetector, get_copy_move_detector
 from app.detectors.univfd import UnivFDDetector, get_univfd_detector
 from app.detectors.drct import DRCTDetector, get_drct_detector
+from app.detectors.dire import DIREDetector, get_dire_detector
 
 __all__ = [
     "BaseDetector", "DetectorResult", "DetectorCategory",
@@ -27,4 +28,5 @@ __all__ = [
     "CopyMoveDetector", "get_copy_move_detector",
     "UnivFDDetector", "get_univfd_detector",
     "DRCTDetector", "get_drct_detector",
+    "DIREDetector", "get_dire_detector",
 ]

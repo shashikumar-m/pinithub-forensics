@@ -41,6 +41,7 @@ from app.detectors.cfa_demosaicing import get_cfa_demosaicing_detector
 from app.detectors.face_biometrics import get_face_biometrics_detector
 from app.detectors.univfd import get_univfd_detector
 from app.detectors.drct import get_drct_detector
+from app.detectors.dire import get_dire_detector
 from app.io.format_normalizer import normalize_image_bytes
 from app.fusion.normalizer import normalize_all
 from app.fusion.verdict_engine import fuse
@@ -566,6 +567,30 @@ def run_unified_analysis(
             })
     except Exception as e:
         logger.debug("DRCT detector failed: %s", e)
+
+    # 3d. Diffusion Reconstruction Error Detector (DIRE - ICCV 2023 ResNet-18)
+    dire_score: Optional[float] = None
+    dire_details: dict[str, Any] = {}
+    try:
+        dire_det = get_dire_detector()
+        dire_res = dire_det.timed_run("", image_bytes=active_suspect_bytes)
+        dire_dict = dire_res.to_dict()
+        all_detector_results["dire"] = dire_dict
+        dire_details = dire_dict.get("details", {})
+        dire_score = dire_dict.get("score")
+        if dire_score is not None:
+            evidence_list.append({
+                "detector": "dire",
+                "version": dire_res.version,
+                "category": "AI_GENERATED",
+                "score": round(dire_score, 4),
+                "reliability": 0.85,
+                "tag": "PROVEN",
+                "notes": dire_details.get("evidence", [])[:2],
+                "evidence": dire_details,
+            })
+    except Exception as e:
+        logger.debug("DIRE detector failed: %s", e)
 
     # 4. Reference Comparison & Crop Detection (if Reference Image provided)
     crop_info: Optional[dict] = None
@@ -1138,6 +1163,7 @@ def run_unified_analysis(
         "faceBiometrics": all_detector_results.get("face_biometrics", {}).get("details"),
         "univfd": all_detector_results.get("univfd", {}).get("details"),
         "drct": all_detector_results.get("drct", {}).get("details"),
+        "dire": all_detector_results.get("dire", {}).get("details"),
         "opticalMetadata": {
             "hasExif": has_exif,
             "make": camera_make,
