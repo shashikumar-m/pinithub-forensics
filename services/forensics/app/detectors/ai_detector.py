@@ -553,6 +553,7 @@ class AIDetector(BaseDetector):
             or (p75 >= 0.65 and p90 >= 0.85 and mean_all >= 0.25 and max_region_conf >= 0.85)
             or (p75 >= 0.30 and p90 >= 0.85 and mean_all >= 0.22 and max_region_conf >= 0.85)
             or (max_region_conf >= 0.85 and p90 >= 0.85 and mean_all >= 0.25 and p75 >= 0.50)
+            or (p95 >= 0.95 and p90 >= 0.85 and max_region_conf >= 0.85 and not has_camera_hardware_exif and (noise_var_std >= 140.0 or res_min_corr < 0.60))
         ):
             image_level_label = "AI_GENERATED"
             status = "AI_GENERATED"

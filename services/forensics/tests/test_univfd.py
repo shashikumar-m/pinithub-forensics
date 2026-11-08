@@ -36,3 +36,4 @@ def test_univfd_inference_ai_vs_camera():
         assert res_ai.score is not None
         assert res_ai.score >= 0.80
         assert res_ai.details.get("status") == "AI_GENERATED"
+

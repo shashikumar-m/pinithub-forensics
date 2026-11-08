@@ -204,3 +204,4 @@ class UnivFDDetector(BaseDetector):
 
 def get_univfd_detector() -> UnivFDDetector:
     return UnivFDDetector()
+

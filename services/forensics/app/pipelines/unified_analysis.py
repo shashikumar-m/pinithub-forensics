@@ -802,13 +802,41 @@ def run_unified_analysis(
         and grid_cv_val < 0.012
     )
 
+    has_camera_hardware_exif = bool(
+        camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows")))
+    )
+
+    ai_ev_strs = ai_evidence_notes or all_detector_results.get("ai", {}).get("details", {}).get("evidence", [])
+    ai_ev_joined = " ".join(ai_ev_strs)
+    import re
+    p50_match = re.search(r"p50:\s*([0-9.]+)", ai_ev_joined)
+    p90_match = re.search(r"p90:\s*([0-9.]+)", ai_ev_joined)
+    p95_match = re.search(r"p95:\s*([0-9.]+)", ai_ev_joined)
+    p50_num = float(p50_match.group(1)) if p50_match else float(ai_details.get("p50") or 1.0)
+    p90_num = float(p90_match.group(1)) if p90_match else float(ai_details.get("p90") or 0.0)
+    p95_num = float(p95_match.group(1)) if p95_match else float(ai_details.get("p95") or 0.0)
+
     if is_screenshot:
         classification = "INCONCLUSIVE"
         verdict = "NOT_EDITED"
     elif ai_status == "AI_EDITED_LOCAL":
-        # Corroborated local edits qualify as AI_EDITED; uncorroborated single-detector local alerts
-        # on compressed/social-media photos degrade gracefully to INCONCLUSIVE.
-        if has_classical_corroboration or ai_provenance in ("AI_EDITED", "AI_GENERATED"):
+        # Check if the entire subject is synthetic (e.g. AI-generated portrait with plain background)
+        # An image is a full AI generation (NOT localized inpainting on a camera photo) when:
+        # 1. Face biometrics detects synthetic facial artifacts / deepfake smoothing, OR
+        # 2. Peak neural activation is extreme (p95 >= 0.95 or max_region_conf >= 0.90) with high sensor noise variance (noise_std_val > 145.0),
+        # AND there is NO physical camera hardware EXIF to corroborate an authentic camera base.
+        is_full_ai_subject = (
+            not has_camera_hardware_exif
+            and (
+                face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
+                or (p95_num >= 0.95 and noise_std_val > 145.0)
+            )
+        )
+        if is_full_ai_subject:
+            classification = "AI_GENERATED"
+            verdict = "EDITED"
+            ai_score = max(0.95, float(ai_score or 0.95))
+        elif has_classical_corroboration or ai_provenance in ("AI_EDITED", "AI_GENERATED"):
             classification = "AI_EDITED"
             verdict = "EDITED"
             if ai_score < 0.75:
@@ -833,20 +861,11 @@ def run_unified_analysis(
         # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
         # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
         # It is a digitally enhanced real photograph!
-        ai_ev_strs = ai_evidence_notes or all_detector_results.get("ai", {}).get("details", {}).get("evidence", [])
-        ai_ev_joined = " ".join(ai_ev_strs)
         has_natural_freq = (
             "natural 1/f" in ai_ev_joined
             or "freq: 0.0" in ai_ev_joined
             or float(ai_details.get("freq_score") or 0.0) <= 0.10
         )
-        import re
-        p50_match = re.search(r"p50:\s*([0-9.]+)", ai_ev_joined)
-        p90_match = re.search(r"p90:\s*([0-9.]+)", ai_ev_joined)
-        p95_match = re.search(r"p95:\s*([0-9.]+)", ai_ev_joined)
-        p50_num = float(p50_match.group(1)) if p50_match else float(ai_details.get("p50") or 1.0)
-        p90_num = float(p90_match.group(1)) if p90_match else float(ai_details.get("p90") or 0.0)
-        p95_num = float(p95_match.group(1)) if p95_match else float(ai_details.get("p95") or 0.0)
 
         has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
         # Principled Generalization: An image is ONLY a digitally enhanced real photo if the neural network
