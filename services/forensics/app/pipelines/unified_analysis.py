@@ -827,18 +827,40 @@ def run_unified_analysis(
     ai_votes = 0
     if dire_score_val >= 0.75:
         ai_votes += 1
-    if drct_score_val >= 0.65:
-        ai_votes += 1
-    if univfd_score_val >= 0.65:
-        ai_votes += 1
-    if cfa_status in ("SYNTHETIC_GENERATIVE_LATTICE", "NO_CFA_PATTERN", "NO_BAYER_CFA_DETECTED") or cfa_score_val >= 0.70:
-        ai_votes += 1
-    if face_status in ("DEEPFAKE_FACE_DISCREPANCY", "SYNTHETIC_FACIAL_ARTIFACTS"):
-        ai_votes += 1
+    has_ai_provenance = (
+        ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
+        editing_software == "Canva"
+    )
 
-    has_generative_ai_evidence = (ai_votes >= 2) or (
-        cfa_status in ("SYNTHETIC_GENERATIVE_LATTICE", "NO_CFA_PATTERN", "NO_BAYER_CFA_DETECTED")
-        and (dire_score_val >= 0.75 or drct_score_val >= 0.60 or univfd_score_val >= 0.60)
+    # -------------------------------------------------------------------------
+    # Democratic Deep Foundation Model Consensus (UnivFD, DRCT, DIRE)
+    # Rule: If 2 or more independent foundation models agree, the majority consensus governs.
+    # A single detector outlier (e.g. DIRE false alarm on a smooth twilight sky) cannot
+    # overturn multiple agreeing independent models.
+    # -------------------------------------------------------------------------
+    deep_ai_votes = sum([
+        1 for s in (
+            univfd_score_val >= 0.55,
+            drct_score_val >= 0.55,
+            dire_score_val >= 0.70,
+        ) if s
+    ])
+    deep_real_votes = sum([
+        1 for s in (
+            univfd_score_val < 0.35,
+            drct_score_val < 0.40,
+            dire_score_val < 0.35,
+        ) if s
+    ])
+
+    # Authentic consensus: 2 or more deep models verify authentic photographic distribution
+    has_majority_real_consensus = (deep_real_votes >= 2) and not has_ai_provenance
+
+    # True generative AI evidence requires AT LEAST 2 independent generative votes (majority consensus),
+    # or synthetic generative lattice corroborated by at least one deep detector:
+    has_generative_ai_evidence = (deep_ai_votes >= 2) or (
+        cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"
+        and (univfd_score_val >= 0.60 or drct_score_val >= 0.55 or dire_score_val >= 0.70)
     )
 
     has_classical_corroboration = (
@@ -848,7 +870,7 @@ def run_unified_analysis(
     ) or (
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
     ) or (
-        cfa_status in ("CFA_DISCONTINUITY", "NO_BAYER_CFA_DETECTED", "NO_CFA_PATTERN", "SYNTHETIC_GENERATIVE_LATTICE")
+        cfa_status in ("CFA_DISCONTINUITY", "SYNTHETIC_GENERATIVE_LATTICE")
     ) or (
         cfa_score_val >= 0.70
     ) or (
@@ -866,15 +888,15 @@ def run_unified_analysis(
     # Physical Camera Sensor & Biological Verification Override:
     # If verified physical camera hardware EXIF is present (Nikon, Canon, Sony, iPhone, etc.)
     # OR the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
+    # OR 2+ deep foundation models confirm natural optical photography (has_majority_real_consensus)
     # AND biological facial dermal pores are verified (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE")),
-    # AND deep semantic models confirm authentic photographic distributions (univfd < 0.25 and drct < 0.45):
+    # AND no synthetic lattice or AI provenance:
     # This authentic physical camera consensus overrides single-detector outliers.
     has_verified_camera_and_biology = (
-        (has_camera_hardware_exif or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35))
+        (has_camera_hardware_exif or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35) or has_majority_real_consensus)
         and cfa_status != "SYNTHETIC_GENERATIVE_LATTICE"
-        and univfd_score_val < 0.25
-        and drct_score_val < 0.45
         and (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE"))
+        and not has_ai_provenance
     )
 
     # 4-Class Classification per Master Prompt Section 2
@@ -1081,10 +1103,15 @@ def run_unified_analysis(
     # Synthesize foundation model signals and physical sensor metrics:
     # univfd_score_val (CLIP ViT), drct_score_val (ConvNeXt), dire_score_val (ResNet-18),
     # cfa_score_val (Bayer demosaicing lattice), noise_std_val (PRNU sensor noise)
+    effective_dire = (
+        min(dire_score_val, max(univfd_score_val, drct_score_val) + 0.05)
+        if has_majority_real_consensus
+        else dire_score_val
+    )
     raw_ai_ensemble = (
         0.35 * univfd_score_val
         + 0.35 * drct_score_val
-        + 0.20 * dire_score_val
+        + 0.20 * effective_dire
         + 0.10 * max(0.0, cfa_score_val - 0.10)
     )
 
