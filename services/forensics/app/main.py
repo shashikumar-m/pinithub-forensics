@@ -15,6 +15,10 @@ if root_env.is_file():
 else:
     load_dotenv()
 
+# Force offline mode for Hugging Face and Timm models so inference never hangs on internet checks
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
 # Automatically configure AI weights path if file exists in models directory
 if not os.environ.get("AI_WEIGHTS_PATH"):
     default_model = Path(__file__).resolve().parents[3] / "models" / "ai_detector_v1.pth"
@@ -22,6 +26,7 @@ if not os.environ.get("AI_WEIGHTS_PATH"):
         os.environ["AI_WEIGHTS_PATH"] = str(default_model)
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from starlette.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -78,6 +83,23 @@ class AnalyzeRequest(BaseModel):
     image_hex: str
     reference_hex: Optional[str] = None
     params: Optional[dict] = None
+
+
+@app.on_event("startup")
+async def startup_warmup():
+    """Warm up PyTorch deep learning backbones at startup so user analysis requests are instant."""
+    try:
+        from app.detectors.univfd import get_univfd_detector
+        from app.detectors.drct import get_drct_detector
+        from app.detectors.dire import get_dire_detector
+        from app.detectors.ai_detector import get_ai_detector
+        get_univfd_detector()
+        get_drct_detector()
+        get_dire_detector()
+        get_ai_detector()
+        logger.info("Forensic deep neural networks warmed up successfully.")
+    except Exception as e:
+        logger.warning(f"Startup warmup encountered non-fatal notice: {e}")
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -233,7 +255,7 @@ async def analyze_full(req: AnalyzeRequest):
             raise HTTPException(status_code=400, detail="Invalid hex-encoded reference image data")
 
     try:
-        result = run_unified_analysis(suspect_bytes, reference_bytes=ref_bytes, params=req.params)
+        result = await run_in_threadpool(run_unified_analysis, suspect_bytes, reference_bytes=ref_bytes, params=req.params)
         return sanitize_for_json(result)
     except Exception as e:
         logger.error("Unified analysis failed", exc_info=True)
@@ -265,7 +287,7 @@ async def analyses_direct(
             ref_bytes = None
 
     try:
-        result = run_unified_analysis(suspect_bytes, reference_bytes=ref_bytes)
+        result = await run_in_threadpool(run_unified_analysis, suspect_bytes, reference_bytes=ref_bytes)
         return sanitize_for_json(result)
     except Exception as e:
         logger.error(f"Direct analysis failed: {e}", exc_info=True)

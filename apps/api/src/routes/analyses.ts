@@ -67,7 +67,7 @@ analysesRouter.post(
           reference_hex: referenceHex,
           params: req.body?.params,
         }),
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(180_000),
       });
 
       if (!resp.ok) {
