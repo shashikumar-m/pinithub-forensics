@@ -178,6 +178,7 @@ export default function ForensicsDashboard() {
   const currentStage = PIPELINE_STAGES.find((s) => progress <= s.threshold) || PIPELINE_STAGES[PIPELINE_STAGES.length - 1];
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const suspectInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +189,40 @@ export default function ForensicsDashboard() {
     setSuspectPreview(url);
     setResult(null);
     setError(null);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        handleFileSelect(file);
+      } else {
+        setError('Please drop a valid image file (JPEG, PNG, WebP).');
+      }
+    }
   }
 
   function handleSuspectChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -320,7 +355,15 @@ export default function ForensicsDashboard() {
         <div className="mt-5">
           <div
             onClick={() => suspectInputRef.current?.click()}
-            className="group relative flex min-h-[200px] sm:min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 p-4 sm:p-6 transition-all hover:border-brand-500 hover:bg-brand-50/20 active:scale-[0.99]"
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`group relative flex min-h-[200px] sm:min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 transition-all active:scale-[0.99] ${
+              isDragging
+                ? 'border-brand-500 bg-brand-50/70 ring-4 ring-brand-500/25 scale-[1.01] shadow-lg'
+                : 'border-slate-300 bg-slate-50/70 hover:border-brand-500 hover:bg-brand-50/20'
+            }`}
           >
             {suspectPreview ? (
               <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
@@ -329,6 +372,17 @@ export default function ForensicsDashboard() {
                   alt="Suspect Preview"
                   className="max-h-[320px] sm:max-h-[420px] w-auto max-w-full object-contain rounded-lg shadow-sm"
                 />
+
+                {/* Dragging over existing preview overlay */}
+                {isDragging && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-brand-900/80 backdrop-blur-xs text-white animate-fadeIn">
+                    <svg className="h-12 w-12 text-brand-300 animate-bounce mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="font-bold text-sm tracking-wide">Drop to Replace Suspect Image</p>
+                    <p className="text-xs text-brand-200 mt-1">Release to load new photo for analysis</p>
+                  </div>
+                )}
 
                 {/* Live Scanning Laser Overlay during Loading */}
                 {loading && (
@@ -356,16 +410,20 @@ export default function ForensicsDashboard() {
               </div>
             ) : (
               <div className="text-center py-4 px-2">
-                <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-100 to-indigo-100 text-brand-600 mb-3 shadow-inner group-hover:scale-105 transition-transform">
+                <div className={`mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl transition-transform ${
+                  isDragging 
+                    ? 'bg-brand-200 text-brand-700 scale-110 animate-bounce' 
+                    : 'bg-gradient-to-tr from-brand-100 to-indigo-100 text-brand-600 shadow-inner group-hover:scale-105'
+                } mb-3`}>
                   <svg className="h-7 w-7 sm:h-8 sm:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-sm sm:text-base font-bold text-slate-800">
-                  Tap to browse or drop image here
+                <p className={`text-sm sm:text-base font-bold transition-colors ${isDragging ? 'text-brand-700' : 'text-slate-800'}`}>
+                  {isDragging ? 'Drop your image here!' : 'Tap to browse or drop image here'}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  JPEG, PNG, WebP · WhatsApp · Phone Camera · AI Exports (up to 50MB)
+                  {isDragging ? 'Supports JPEG, PNG, WebP format' : 'JPEG, PNG, WebP · WhatsApp · Phone Camera · AI Exports (up to 50MB)'}
                 </p>
 
                 {/* Action Buttons */}
