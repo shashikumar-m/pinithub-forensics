@@ -922,15 +922,25 @@ def run_unified_analysis(
         camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows")))
     )
 
+    dqt_details = all_detector_results.get("dqt_fingerprint", {}).get("details", {})
+    dqt_match_cat = str(dqt_details.get("match_category") or "").upper()
+    dqt_match_name = str(dqt_details.get("match_name") or "").lower()
+    has_camera_hardware_dqt = (
+        dqt_match_cat == "CAMERA_HARDWARE"
+        or any(k in dqt_match_name for k in ("samsung", "apple", "iphone", "nikon", "canon", "sony", "fuji", "panasonic", "olympus", "google pixel", "camera"))
+    )
+    has_verified_camera_hardware = has_camera_hardware_exif or has_camera_hardware_dqt
+    has_natural_faces = (face_status == "NATURAL_BIOMETRIC_VERIFIED")
+
     # Physical Camera Sensor & Biological Verification Override:
-    # If verified physical camera hardware EXIF is present (Nikon, Canon, Sony, iPhone, etc.)
+    # If verified physical camera hardware EXIF or hardware DQT matrix is present (Samsung, Apple, Sony, Nikon, etc.)
     # OR the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
+    # OR verified biological facial dermal pores are confirmed on human face(s)
     # OR 2+ deep foundation models confirm natural optical photography (has_majority_real_consensus)
-    # AND biological facial dermal pores are verified (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE")),
     # AND no synthetic lattice or AI provenance:
-    # This authentic physical camera consensus overrides single-detector outliers.
+    # This authentic physical camera consensus overrides single-detector outliers across all image sizes.
     has_verified_camera_and_biology = (
-        (has_camera_hardware_exif or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35) or has_majority_real_consensus)
+        (has_verified_camera_hardware or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35) or has_majority_real_consensus or has_natural_faces)
         and cfa_status != "SYNTHETIC_GENERATIVE_LATTICE"
         and (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE"))
         and not has_ai_provenance
@@ -989,7 +999,8 @@ def run_unified_analysis(
         # 2. Peak neural activation is extreme (p95 >= 0.95 or max_region_conf >= 0.90) with high sensor noise variance (noise_std_val > 145.0),
         # AND there is NO physical camera hardware EXIF to corroborate an authentic camera base.
         is_full_ai_subject = (
-            not has_camera_hardware_exif
+            not has_verified_camera_hardware
+            and not has_natural_faces
             and (
                 face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
                 or (p95_num >= 0.95 and noise_std_val > 145.0)
@@ -1095,14 +1106,14 @@ def run_unified_analysis(
         verdict = "EDITED"
         if ai_score < 0.85:
             ai_score = 0.95
-    elif not has_camera_hardware_exif and cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85):
+    elif not has_verified_camera_hardware and not has_natural_faces and cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85):
         # Physical camera sensor checks confirm software RGB synthesis (no Bayer demosaicing),
         # corroborated by AI pupil/corneal deformation or high neural peak activations.
         classification = "AI_GENERATED"
         verdict = "EDITED"
         if ai_score < 0.85:
             ai_score = 0.95
-    elif has_generative_ai_evidence and not has_camera_hardware_exif and not has_verified_camera_and_biology:
+    elif has_generative_ai_evidence and not has_verified_camera_hardware and not has_verified_camera_and_biology:
         # Deep generative manifold confirmed by DIRE (diffusion reconstruction error),
         # DRCT (contrastive diffusion training), or UnivFD (universal fake detection)
         # with no physical camera hardware EXIF.
@@ -1139,7 +1150,7 @@ def run_unified_analysis(
     # cfa_score_val (Bayer demosaicing lattice), noise_std_val (PRNU sensor noise)
     effective_dire = (
         min(dire_score_val, max(univfd_score_val, drct_score_val) + 0.05)
-        if has_majority_real_consensus
+        if (has_majority_real_consensus or has_verified_camera_and_biology or has_verified_camera_hardware)
         else dire_score_val
     )
     raw_ai_ensemble = (
@@ -1153,8 +1164,8 @@ def run_unified_analysis(
         # Digital screen capture: UI elements, clean vector text, 0 sensor noise
         calibrated_prob = 0.000
     elif classification == "CAMERA_CAPTURED":
-        if has_camera_hardware_exif and has_verified_camera_and_biology:
-            # Verified camera hardware optics (Nikon, Canon, Sony, iPhone, etc.)
+        if has_verified_camera_hardware and has_verified_camera_and_biology:
+            # Verified camera hardware optics (Nikon, Canon, Sony, iPhone, Samsung, etc.)
             # + verified biological facial pores + natural semantic distribution.
             # Scale continuously from 0.000 (100.0% Real) based on residual model variance.
             if raw_ai_ensemble <= 0.05:
