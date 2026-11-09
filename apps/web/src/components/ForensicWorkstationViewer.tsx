@@ -97,23 +97,23 @@ export const ForensicWorkstationViewer: React.FC<ForensicWorkstationViewerProps>
 
   return (
     <div className="rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-950 text-slate-100 shadow-xl overflow-hidden font-sans transition-all">
-      {/* 1. Forensic Workstation Header Toolbar */}
+      {/* 1. Header Toolbar */}
       <div className="border-b border-slate-800/80 bg-slate-900/90 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500" />
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
-            <span className="font-mono text-xs font-bold tracking-wider text-cyan-400 uppercase">
-              FORENSIC INSPECTION WORKSTATION
+            <span className="font-mono text-xs font-bold tracking-wider text-slate-200 uppercase">
+              IMAGE INSPECTION &amp; LOCALIZATION
             </span>
           </div>
 
           <span className="hidden sm:inline-block h-3.5 w-px bg-slate-700" />
 
           <span className="text-[11px] font-mono text-slate-400">
-            TELEMETRY: <span className="text-emerald-400 font-semibold">ACTIVE</span>
+            SCAN STATUS: <span className="text-emerald-400 font-semibold">VERIFIED</span>
             {executionMs && <span className="ml-2 text-slate-500">({executionMs}ms)</span>}
           </span>
         </div>

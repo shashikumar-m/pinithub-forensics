@@ -20,6 +20,12 @@ def sanitize_for_json(obj: Any) -> Any:
         return bool(obj)
     if isinstance(obj, str):
         return obj
+    if isinstance(obj, (bytes, bytearray)):
+        try:
+            return obj.decode("utf-8")
+        except Exception:
+            import base64
+            return base64.b64encode(obj).decode("ascii")
     if isinstance(obj, (int, np.integer)):
         return int(obj)
     if isinstance(obj, (float, np.floating)):

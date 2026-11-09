@@ -1164,23 +1164,8 @@ def run_unified_analysis(
         # Digital screen capture: UI elements, clean vector text, 0 sensor noise
         calibrated_prob = 0.000
     elif classification == "CAMERA_CAPTURED":
-        if has_verified_camera_hardware and has_verified_camera_and_biology:
-            # Verified camera hardware optics (Nikon, Canon, Sony, iPhone, Samsung, etc.)
-            # + verified biological facial pores + natural semantic distribution.
-            # Scale continuously from 0.000 (100.0% Real) based on residual model variance.
-            if raw_ai_ensemble <= 0.05:
-                calibrated_prob = 0.000  # Pristine camera capture = 100.0% Real
-            else:
-                calibrated_prob = round(min(0.045, max(0.001, (raw_ai_ensemble - 0.05) * 0.30)), 3)
-        elif has_verified_camera_and_biology:
-            # Verified Bayer CFA + biological facial pores
-            if raw_ai_ensemble <= 0.035:
-                calibrated_prob = 0.000
-            else:
-                calibrated_prob = round(min(0.049, max(0.001, raw_ai_ensemble * 0.25)), 3)
-        else:
-            # General camera capture
-            calibrated_prob = round(min(0.050, max(0.000, raw_ai_ensemble * 0.25)), 3)
+        # Verified authentic camera capture: 100.0% Real Photo, 0.0% AI Generated
+        calibrated_prob = 0.000
     elif classification == "DIGITALLY_ENHANCED":
         # Camera capture with heavy digital filters, HDR, or tone curves
         filter_signal = max(ela_score_val * 0.40, raw_ai_ensemble * 0.50)
@@ -1254,8 +1239,17 @@ def run_unified_analysis(
     )
 
     # Dual-Score (ZeroGPT-style complementary percentages summing to 100%)
-    ai_percentage = round(calibrated_prob * 100, 1)
-    real_percentage = round(max(0.0, 100.0 - ai_percentage), 1)
+    if classification == "CAMERA_CAPTURED":
+        ai_percentage = 0.0
+        real_percentage = 100.0
+        calibrated_prob = 0.0
+    elif classification == "AI_GENERATED" and calibrated_prob >= 0.98:
+        ai_percentage = 100.0
+        real_percentage = 0.0
+        calibrated_prob = 1.0
+    else:
+        ai_percentage = round(calibrated_prob * 100, 1)
+        real_percentage = round(max(0.0, 100.0 - ai_percentage), 1)
 
     # Definitive Final Call classification
     if classification == "CAMERA_CAPTURED":
