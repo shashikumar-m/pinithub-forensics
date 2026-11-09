@@ -925,39 +925,79 @@ def run_unified_analysis(
     dqt_details = all_detector_results.get("dqt_fingerprint", {}).get("details", {})
     dqt_match_cat = str(dqt_details.get("match_category") or "").upper()
     dqt_match_name = str(dqt_details.get("match_name") or "").lower()
+    dqt_match_conf = float(dqt_details.get("match_confidence") or 0.0)
+    dqt_best_dist = float(dqt_details.get("best_distance") or 999.0)
+
+    # Hardware DQT quantization requires strict high confidence (confidence >= 0.70 or distance <= 25.0)
     has_camera_hardware_dqt = (
-        dqt_match_cat == "CAMERA_HARDWARE"
-        or any(k in dqt_match_name for k in ("samsung", "apple", "iphone", "nikon", "canon", "sony", "fuji", "panasonic", "olympus", "google pixel", "camera"))
+        (dqt_match_cat == "CAMERA_HARDWARE" or any(k in dqt_match_name for k in ("samsung", "apple", "iphone", "nikon", "canon", "sony", "fuji", "panasonic", "olympus", "google pixel", "camera")))
+        and (dqt_match_conf >= 0.70 or dqt_best_dist <= 25.0)
     )
     has_verified_camera_hardware = has_camera_hardware_exif or has_camera_hardware_dqt
     has_natural_faces = (face_status == "NATURAL_BIOMETRIC_VERIFIED")
 
-    # Physical Camera Sensor & Biological Verification Override:
-    # If verified physical camera hardware EXIF or hardware DQT matrix is present (Samsung, Apple, Sony, Nikon, etc.)
-    # OR the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
-    # OR verified biological facial dermal pores are confirmed on human face(s)
-    # OR 2+ deep foundation models confirm natural optical photography (has_majority_real_consensus)
-    # AND no synthetic lattice or AI provenance:
-    # This authentic physical camera consensus overrides single-detector outliers across all image sizes.
-    has_verified_camera_and_biology = (
-        (has_verified_camera_hardware or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35) or has_majority_real_consensus or has_natural_faces)
-        and cfa_status != "SYNTHETIC_GENERATIVE_LATTICE"
-        and (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE"))
-        and not has_ai_provenance
+    # =========================================================================
+    # UNIVERSAL 3-TIER FORENSIC DECISION HIERARCHY
+    # =========================================================================
+
+    # TIER 1: PHYSICAL CAMERA HARDWARE & BIOLOGICAL TRUTH
+    # An image has verified optical camera ground truth IF AND ONLY IF:
+    # 1. Genuine camera hardware EXIF tags are present (Make, Model, Lens, ISO, Shutter), OR
+    # 2. Hardware DQT quantization matches camera hardware with strict high confidence (conf >= 0.70 or dist <= 25.0), OR
+    # 3. Verified biological human dermal facial pores and boundary continuity are confirmed on human face(s).
+    has_verified_camera_base = has_verified_camera_hardware or (has_natural_faces and not has_ai_provenance)
+
+    # TIER 2: DEEP GENERATIVE DIFFUSION & AI TRUTH
+    # Diffusion manifold confirmation: When deep diffusion models (DIRE / UnivFD) confirm the image resides
+    # on the generative diffusion manifold without verified camera hardware EXIF:
+    univfd_details = all_detector_results.get("univfd", {}).get("details", {})
+    univfd_patch_max = float(univfd_details.get("patch_max_score") or univfd_score_val)
+
+    is_diffusion_manifold = (
+        (
+            (dire_score_val >= 0.75 and (univfd_score_val >= 0.50 or univfd_patch_max >= 0.70))
+            or (dire_score_val >= 0.90 and resampling_score_val >= 0.80 and not has_natural_faces and not has_majority_real_consensus)
+            or (univfd_score_val >= 0.75)
+        )
+        and not has_verified_camera_hardware
+        and not (has_natural_faces and has_majority_real_consensus)
     )
 
-    # 4-Class Classification per Master Prompt Section 2
-    is_cam = (
-        has_verified_camera_and_biology
+    # An image is identified as FULL AI GENERATED when:
+    # 1. AI Provenance metadata confirms generation (Canva, Midjourney, DALL-E, Google Imagen, etc.)
+    # 2. Synthetic facial biometrics (deepfake, AI facial synthesis)
+    # 3. Synthetic generative lattice from latent diffusion VAE upsamplers
+    # 4. Confirmed diffusion manifold (DIRE + UnivFD patch / Resampling) without camera hardware EXIF
+    # 5. Overwhelming diffusion reconstruction trace (dire_score_val >= 0.80) with NO camera hardware base
+    # 6. UnivFD universal fake detector (univfd_score_val >= 0.65) with NO camera hardware base
+    # 7. DRCT contrastive diffusion detector (drct_score_val >= 0.60) with NO camera hardware base
+    # 8. 2+ deep foundation models agree on generative AI (deep_ai_votes >= 2) with NO camera hardware base
+    is_deep_ai_generated = (
+        has_ai_provenance
+        or face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
+        or cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"
+        or is_diffusion_manifold
         or (
-            (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
-            and not has_classical_corroboration
-            and not has_generative_ai_evidence
-            and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
-            and cfa_score_val < 0.60
-            and corneal_score_val < 0.25
+            not has_verified_camera_base
+            and (
+                dire_score_val >= 0.80
+                or univfd_score_val >= 0.65
+                or drct_score_val >= 0.60
+                or (dire_score_val >= 0.60 and resampling_score_val >= 0.80)
+                or deep_ai_votes >= 2
+            )
         )
     )
+
+    # TIER 3: LOCALIZED TAMPERING & INPAINTING
+    # Does the image have localized edits, inpainting, splices, or crops?
+    has_localized_tamper = (
+        len(regions) > 0
+        or (crop_info and crop_info.get("status") == "DETECTED")
+        or has_manual_tamper_evidence
+        or (cfa_status == "CFA_DISCONTINUITY" and affected_area_pct > 0.5)
+    )
+
     is_screenshot = (ai_details.get("image_level_label") == "DIGITAL_SCREENSHOT")
     has_ai_provenance = (
         ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
@@ -975,10 +1015,6 @@ def run_unified_analysis(
         and grid_cv_val < 0.012
     )
 
-    has_camera_hardware_exif = bool(
-        camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows")))
-    )
-
     ai_ev_strs = ai_evidence_notes or all_detector_results.get("ai", {}).get("details", {}).get("evidence", [])
     ai_ev_joined = " ".join(ai_ev_strs)
     import re
@@ -989,146 +1025,58 @@ def run_unified_analysis(
     p90_num = float(p90_match.group(1)) if p90_match else float(ai_details.get("p90") or 0.0)
     p95_num = float(p95_match.group(1)) if p95_match else float(ai_details.get("p95") or 0.0)
 
+    # -------------------------------------------------------------------------
+    # AUTHORITATIVE VERDICT & CLASSIFICATION ASSIGNMENT
+    # -------------------------------------------------------------------------
     if is_screenshot:
         classification = "INCONCLUSIVE"
         verdict = "NOT_EDITED"
-    elif ai_status == "AI_EDITED_LOCAL":
-        # Check if the entire subject is synthetic (e.g. AI-generated portrait with plain background)
-        # An image is a full AI generation (NOT localized inpainting on a camera photo) when:
-        # 1. Face biometrics detects synthetic facial artifacts / deepfake smoothing, OR
-        # 2. Peak neural activation is extreme (p95 >= 0.95 or max_region_conf >= 0.90) with high sensor noise variance (noise_std_val > 145.0),
-        # AND there is NO physical camera hardware EXIF to corroborate an authentic camera base.
-        is_full_ai_subject = (
-            not has_verified_camera_hardware
-            and not has_natural_faces
-            and (
-                face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
-                or (p95_num >= 0.95 and noise_std_val > 145.0)
-                or (cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85))
-            )
+        regions = []
+        affected_area_pct = 0.0
+    elif is_deep_ai_generated:
+        # Full generative AI media: 100% AI Generated, 0% Real Camera
+        classification = "AI_GENERATED"
+        verdict = "EDITED"
+        ai_score = max(0.95, dire_score_val, univfd_score_val, drct_score_val, float(ai_score or 0.95))
+        regions = []
+        affected_area_pct = 0.0
+    elif has_localized_tamper:
+        # Authentic camera base with localized modification (inpainting or manual splice)
+        verdict = "EDITED"
+        is_ai_inpaint = (
+            ai_status in ("AI_GENERATED", "AI_EDITED_LOCAL")
+            or ai_provenance in ("AI_EDITED", "AI_GENERATED")
+            or cfa_status == "CFA_DISCONTINUITY"
+            or max(dire_score_val, univfd_score_val, drct_score_val) >= 0.40
         )
-        if is_full_ai_subject:
-            classification = "AI_GENERATED"
-            verdict = "EDITED"
-            ai_score = max(0.95, float(ai_score or 0.95))
-        elif has_classical_corroboration or ai_provenance in ("AI_EDITED", "AI_GENERATED"):
+        if is_ai_inpaint:
             classification = "AI_EDITED"
-            verdict = "EDITED"
             if ai_score < 0.75:
                 ai_score = 0.88
-        elif len(regions) > 0:
-            # Local tampering detected (added sticker, graphic cutout, or manual splice on real camera photo)
-            classification = "EDITED"
-            verdict = "EDITED"
-        else:
-            # If JPEG compression and clone detectors confirm camera uniformity:
-            # this is an uncorroborated chromatic / clothing false positive on an authentic camera photo!
-            if ela_score_val < 0.15 and len(copy_points) == 0:
-                classification = "CAMERA_CAPTURED"
-                verdict = "NOT_EDITED"
-                regions = []
-            else:
-                classification = "INCONCLUSIVE"
-                verdict = "INCONCLUSIVE"
-                warnings.append("Potential localized anomalies detected by experimental AI model, but classical sensor noise and recompression checks show no corroboration.")
-    elif ai_status == "AI_GENERATED" or has_ai_provenance:
-        if has_majority_real_consensus and not has_ai_provenance and not has_classical_corroboration and len(copy_points) == 0:
-            # Democratic 2+ Foundation Model Majority Consensus:
-            # Independent deep models (UnivFD, DRCT) confirm natural camera capture distribution.
-            # Suppress uncalibrated experimental UNet false alarm on authentic photographs.
-            classification = "CAMERA_CAPTURED"
-            verdict = "NOT_EDITED"
-            ai_score = 0.03
-            regions = []
-        else:
-            # Check Option A: Digitally enhanced / filtered real photo or camera photo with unbroken CFA
-            # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
-            # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
-            # It is a digitally enhanced real photograph!
-            has_natural_freq = (
-                "natural 1/f" in ai_ev_joined
-                or "freq: 0.0" in ai_ev_joined
-                or float(ai_details.get("freq_score") or 0.0) <= 0.10
-            )
-
-            has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
-            has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
-
-            has_camera_hardware_or_biometrics = (
-                (has_unbroken_camera_cfa or (face_status == "NATURAL_BIOMETRIC_VERIFIED" and noise_std_val < 145.0))
-                and not has_classical_corroboration
-                and not has_ai_provenance
-                and has_natural_freq
-                and p50_num < 0.20
-                and ela_score_val < 0.18
-                and len(copy_points) == 0
-            )
-
-            if has_camera_hardware_or_biometrics:
-                classification = "CAMERA_CAPTURED"
-                verdict = "NOT_EDITED"
-                ai_score = 0.03
-                regions = []
-            else:
-                is_digitally_enhanced = (
-                    not has_ai_provenance
-                    and not has_classical_corroboration
-                    and not has_generative_subject_activation
-                    and ela_score_val < 0.20
-                    and len(copy_points) == 0
-                    and (has_natural_freq and has_low_p50)
-                )
-                if is_digitally_enhanced:
-                    classification = "DIGITALLY_ENHANCED"
-                    verdict = "NOT_EDITED"
-                    ai_score = 0.12
-                else:
-                    classification = "AI_GENERATED"
-                    verdict = "EDITED"
-                    if ai_score < 0.85:
-                        ai_score = 0.95
-    elif ai_provenance == "AI_EDITED":
-        classification = "AI_EDITED"
-        verdict = "EDITED"
-    elif crop_info and crop_info.get("status") == "DETECTED":
-        classification = "AI_EDITED" if ai_status in ("AI_GENERATED", "AI_EDITED_LOCAL") else "EDITED"
-        verdict = "EDITED"
-    elif len(regions) > 0 and (verdict == "EDITED" or has_manual_tamper_evidence or has_classical_corroboration):
-        if ai_status in ("AI_GENERATED", "AI_EDITED_LOCAL") or ai_provenance in ("AI_EDITED", "AI_GENERATED"):
-            classification = "AI_EDITED"
         else:
             classification = "EDITED"
-        verdict = "EDITED"
-    elif face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY"):
-        # Synthetic biometric artifacts detected on human face:
-        # Micro-texture noise ratio and skin pore inconsistencies confirm Generative AI synthesis.
-        classification = "AI_GENERATED"
-        verdict = "EDITED"
-        if ai_score < 0.85:
-            ai_score = 0.95
-    elif not has_verified_camera_hardware and not has_natural_faces and cfa_score_val >= 0.70 and (corneal_score_val >= 0.25 or p95_num >= 0.85):
-        # Physical camera sensor checks confirm software RGB synthesis (no Bayer demosaicing),
-        # corroborated by AI pupil/corneal deformation or high neural peak activations.
-        classification = "AI_GENERATED"
-        verdict = "EDITED"
-        if ai_score < 0.85:
-            ai_score = 0.95
-    elif has_generative_ai_evidence and not has_verified_camera_hardware and not has_verified_camera_and_biology:
-        # Deep generative manifold confirmed by DIRE (diffusion reconstruction error),
-        # DRCT (contrastive diffusion training), or UnivFD (universal fake detection)
-        # with no physical camera hardware EXIF.
-        classification = "AI_GENERATED"
-        verdict = "EDITED"
-        if ai_score < 0.85:
-            ai_score = max(0.95, dire_score_val, drct_score_val, univfd_score_val)
-    elif is_cam and len(regions) == 0:
+    elif has_verified_camera_base and not has_classical_corroboration and len(copy_points) == 0:
+        # Verified authentic camera capture with zero tampering: 100% Real Camera Photo
         classification = "CAMERA_CAPTURED"
         verdict = "NOT_EDITED"
-    elif verdict == "NOT_EDITED":
-        classification = "CAMERA_CAPTURED"
+        ai_score = 0.00
+        regions = []
+        affected_area_pct = 0.0
+    elif has_verified_camera_base and (has_unbroken_camera_cfa or ela_score_val < 0.20):
+        # Digitally enhanced camera capture (HDR, tone grading)
+        classification = "DIGITALLY_ENHANCED"
+        verdict = "NOT_EDITED"
+        ai_score = 0.12
+        regions = []
+        affected_area_pct = 0.0
     else:
+        # Image has NO camera hardware, NO biological faces, and NO deep AI signatures.
+        # It is a clean digital graphic, stripped web image, or inconclusive non-camera media.
+        # CRITICAL: It must NEVER be declared a physical camera capture!
         classification = "INCONCLUSIVE"
         verdict = "INCONCLUSIVE"
+        regions = []
+        affected_area_pct = 0.0
 
     # Strict false-positive suppression: authentic camera captures, unedited images, and screenshots
     # must never display tampered bounding boxes or artificial heatmaps.
@@ -1150,7 +1098,7 @@ def run_unified_analysis(
     # cfa_score_val (Bayer demosaicing lattice), noise_std_val (PRNU sensor noise)
     effective_dire = (
         min(dire_score_val, max(univfd_score_val, drct_score_val) + 0.05)
-        if (has_majority_real_consensus or has_verified_camera_and_biology or has_verified_camera_hardware)
+        if (has_majority_real_consensus or has_verified_camera_base or has_verified_camera_hardware)
         else dire_score_val
     )
     raw_ai_ensemble = (
@@ -1171,13 +1119,8 @@ def run_unified_analysis(
         filter_signal = max(ela_score_val * 0.40, raw_ai_ensemble * 0.50)
         calibrated_prob = round(min(0.25, max(0.06, 0.08 + filter_signal)), 3)
     elif classification == "AI_GENERATED":
-        # Full generative AI media (Diffusion, GAN)
-        # Scale dynamically from 0.880 to 1.000 based on ensemble strength
-        ai_strength = max(ai_score, raw_ai_ensemble, dire_score_val, drct_score_val, univfd_score_val)
-        if ai_votes >= 4 or (ai_strength >= 0.96 and cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"):
-            calibrated_prob = 1.000  # 100.0% AI
-        else:
-            calibrated_prob = round(min(0.998, max(0.880, 0.72 + 0.28 * ai_strength)), 3)
+        # Full generative AI media (Diffusion, GAN): 100.0% AI Generated, 0.0% Real Camera
+        calibrated_prob = 1.000
     elif classification == "AI_EDITED":
         # Area-weighted continuous calibration for localized generative inpainting:
         # Authentic photographic base represents the real percentage;
@@ -1243,7 +1186,7 @@ def run_unified_analysis(
         ai_percentage = 0.0
         real_percentage = 100.0
         calibrated_prob = 0.0
-    elif classification == "AI_GENERATED" and calibrated_prob >= 0.98:
+    elif classification == "AI_GENERATED":
         ai_percentage = 100.0
         real_percentage = 0.0
         calibrated_prob = 1.0
