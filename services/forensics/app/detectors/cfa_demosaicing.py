@@ -176,7 +176,7 @@ class CFADemosaicingDetector(BaseDetector):
 
             # Physical camera photos show natural demosaicing: 0.0075 <= grid_cv <= 0.0150 and r_ratio <= 1.040 and p_peak <= 1.70
             # Generative models (latent diffusion VAE upsamplers) exhibit extreme periodic frequency resonance:
-            is_generative_lattice = (grid_cv > 0.0150 or r_ratio > 1.045 or p_peak > 1.80)
+            is_generative_lattice = (grid_cv >= 0.0160 and r_ratio >= 1.040 and p_peak >= 1.80)
             is_bayer = (not is_generative_lattice) and (grid_cv >= self.cv_threshold and r_ratio >= self.grid_ratio_threshold and p_peak <= 1.70)
             cfa_conf = float(np.clip((grid_cv - 0.007) / 0.015, 0.0, 1.0)) if is_bayer else 0.0
 

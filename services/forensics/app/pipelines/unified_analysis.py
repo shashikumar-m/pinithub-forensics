@@ -859,17 +859,22 @@ def run_unified_analysis(
         ela_score_val >= 0.05 and noise_std_val > 200.0 and (1 <= len(regions) <= 4) and affected_area_pct < 10.0
     )
 
+    has_camera_hardware_exif = bool(
+        camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows")))
+    )
+
     # Physical Camera Sensor & Biological Verification Override:
-    # If the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
-    # AND biological facial dermal pores are verified (face_status == "NATURAL_BIOMETRIC_VERIFIED"),
+    # If verified physical camera hardware EXIF is present (Nikon, Canon, Sony, iPhone, etc.)
+    # OR the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
+    # AND biological facial dermal pores are verified (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE")),
     # AND deep semantic models confirm authentic photographic distributions (univfd < 0.25 and drct < 0.45):
     # This authentic physical camera consensus overrides single-detector outliers.
     has_verified_camera_and_biology = (
-        cfa_status == "BAYER_CFA_CONFIRMED"
-        and cfa_score_val < 0.35
+        (has_camera_hardware_exif or (cfa_status == "BAYER_CFA_CONFIRMED" and cfa_score_val < 0.35))
+        and cfa_status != "SYNTHETIC_GENERATIVE_LATTICE"
         and univfd_score_val < 0.25
         and drct_score_val < 0.45
-        and (face_status == "NATURAL_BIOMETRIC_VERIFIED" or face_status == "NO_FACE")
+        and (face_status in ("NATURAL_BIOMETRIC_VERIFIED", "NO_FACE"))
     )
 
     # 4-Class Classification per Master Prompt Section 2
