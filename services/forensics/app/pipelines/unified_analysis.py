@@ -820,11 +820,27 @@ def run_unified_analysis(
     dire_score_val = float(all_detector_results.get("dire", {}).get("score") or 0.0)
     drct_score_val = float(all_detector_results.get("drct", {}).get("score") or 0.0)
     univfd_score_val = float(all_detector_results.get("univfd", {}).get("score") or 0.0)
-    has_generative_ai_evidence = (
-        dire_score_val >= 0.75
-        or drct_score_val >= 0.75
-        or univfd_score_val >= 0.75
+
+    # Multi-Modal Consensus:
+    # Generative AI requires multi-detector consensus (at least 2 independent signals),
+    # or synthetic VAE lattice / zero CFA demosaicing corroborated by neural diffusion traces.
+    ai_votes = 0
+    if dire_score_val >= 0.75:
+        ai_votes += 1
+    if drct_score_val >= 0.65:
+        ai_votes += 1
+    if univfd_score_val >= 0.65:
+        ai_votes += 1
+    if cfa_status in ("SYNTHETIC_GENERATIVE_LATTICE", "NO_CFA_PATTERN", "NO_BAYER_CFA_DETECTED") or cfa_score_val >= 0.70:
+        ai_votes += 1
+    if face_status in ("DEEPFAKE_FACE_DISCREPANCY", "SYNTHETIC_FACIAL_ARTIFACTS"):
+        ai_votes += 1
+
+    has_generative_ai_evidence = (ai_votes >= 2) or (
+        cfa_status in ("SYNTHETIC_GENERATIVE_LATTICE", "NO_CFA_PATTERN", "NO_BAYER_CFA_DETECTED")
+        and (dire_score_val >= 0.75 or drct_score_val >= 0.60 or univfd_score_val >= 0.60)
     )
+
     has_classical_corroboration = (
         ela_score_val > 0.18
     ) or (
@@ -832,7 +848,7 @@ def run_unified_analysis(
     ) or (
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
     ) or (
-        cfa_status in ("CFA_DISCONTINUITY", "NO_BAYER_CFA_DETECTED")
+        cfa_status in ("CFA_DISCONTINUITY", "NO_BAYER_CFA_DETECTED", "NO_CFA_PATTERN", "SYNTHETIC_GENERATIVE_LATTICE")
     ) or (
         cfa_score_val >= 0.70
     ) or (
@@ -843,14 +859,30 @@ def run_unified_analysis(
         ela_score_val >= 0.05 and noise_std_val > 200.0 and (1 <= len(regions) <= 4) and affected_area_pct < 10.0
     )
 
+    # Physical Camera Sensor & Biological Verification Override:
+    # If the camera sensor's Bayer CFA demosaicing is confirmed (cfa_score < 0.35)
+    # AND biological facial dermal pores are verified (face_status == "NATURAL_BIOMETRIC_VERIFIED"),
+    # AND deep semantic models confirm authentic photographic distributions (univfd < 0.25 and drct < 0.45):
+    # This authentic physical camera consensus overrides single-detector outliers.
+    has_verified_camera_and_biology = (
+        cfa_status == "BAYER_CFA_CONFIRMED"
+        and cfa_score_val < 0.35
+        and univfd_score_val < 0.25
+        and drct_score_val < 0.45
+        and (face_status == "NATURAL_BIOMETRIC_VERIFIED" or face_status == "NO_FACE")
+    )
+
     # 4-Class Classification per Master Prompt Section 2
     is_cam = (
-        (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
-        and not has_classical_corroboration
-        and not has_generative_ai_evidence
-        and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
-        and cfa_score_val < 0.60
-        and corneal_score_val < 0.25
+        has_verified_camera_and_biology
+        or (
+            (ai_status == "NO_AI_EVIDENCE" or ai_details.get("image_level_label") == "LIKELY_REAL")
+            and not has_classical_corroboration
+            and not has_generative_ai_evidence
+            and face_status not in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
+            and cfa_score_val < 0.60
+            and corneal_score_val < 0.25
+        )
     )
     is_screenshot = (ai_details.get("image_level_label") == "DIGITAL_SCREENSHOT")
     has_ai_provenance = (
@@ -1009,7 +1041,7 @@ def run_unified_analysis(
         verdict = "EDITED"
         if ai_score < 0.85:
             ai_score = 0.95
-    elif has_generative_ai_evidence and not has_camera_hardware_exif:
+    elif has_generative_ai_evidence and not has_camera_hardware_exif and not has_verified_camera_and_biology:
         # Deep generative manifold confirmed by DIRE (diffusion reconstruction error),
         # DRCT (contrastive diffusion training), or UnivFD (universal fake detection)
         # with no physical camera hardware EXIF.

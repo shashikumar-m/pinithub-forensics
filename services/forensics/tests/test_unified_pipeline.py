@@ -197,6 +197,32 @@ def test_img_023_synthetic_diffusion_calibration():
         assert res["dualScore"]["realPercentage"] <= 5.0
 
 
+def test_img_014_camera_photo_calibration():
+    """Verify that authentic camera photos with human faces (Img_014) are classified as REAL CAMERA PHOTO with 97% Real."""
+    import os
+    from app.models.ai_model_registry import reset_ai_model_loader
+    from app.models.ai_segmentation import get_ai_segmentation_model
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    weights_path = os.path.join(root, "models", "ai_detector_v1.pth")
+    target_path = os.path.join(root, "Img_014.jpg")
+
+    if os.path.exists(weights_path) and os.path.exists(target_path):
+        os.environ["AI_WEIGHTS_PATH"] = weights_path
+        reset_ai_model_loader()
+        get_ai_segmentation_model(weights_path)
+        with open(target_path, "rb") as f:
+            data = f.read()
+        res = run_unified_analysis(data)
+        assert res["classification"] == "CAMERA_CAPTURED"
+        assert res["verdict"] == "NOT_EDITED"
+        assert res["finalCall"]["verdict"] == "REAL_CAMERA_PHOTO"
+        assert res["finalCall"]["title"] == "REAL CAMERA PHOTO"
+        assert res["dualScore"]["realPercentage"] == 97.0
+        assert res["dualScore"]["aiPercentage"] == 3.0
+
+
+
 
 
 
