@@ -11,6 +11,7 @@ Fulfills PinITHUB_Plan.pdf (Section 3.2, 5, 7, 10.1) and Crop_plan.pdf:
 from __future__ import annotations
 
 import base64
+import concurrent.futures
 import cv2
 import io
 import logging
@@ -228,10 +229,23 @@ def run_unified_analysis(
         ("copy_move", get_copy_move_detector, "PROVEN"),
     ]
 
-    for name, get_fn, tag in classical_map:
+    def _run_single_classical(item):
+        name, get_fn, tag = item
         try:
             det = get_fn()
             res = det.timed_run("", image_bytes=suspect_bytes)
+            return name, res, tag, None
+        except Exception as e:
+            return name, None, tag, e
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        classical_exec_results = list(executor.map(_run_single_classical, classical_map))
+
+    for name, res, tag, err in classical_exec_results:
+        if err is not None or res is None:
+            logger.error(f"Detector {name} failed: {err}")
+            continue
+        try:
             rdict = res.to_dict()
             all_detector_results[name] = rdict
 
@@ -520,77 +534,102 @@ def run_unified_analysis(
     except Exception as e:
         logger.error(f"AI detector failed: {e}")
 
-    # 3b. Universal Fake Detector (UnivFD - CVPR 2023 CLIP-ViT)
+    # 3b, 3c, 3d: Concurrently execute Foundation AI Models (UnivFD, DRCT, DIRE)
     univfd_score: Optional[float] = None
     univfd_details: dict[str, Any] = {}
-    try:
-        univ_det = get_univfd_detector()
-        univ_res = univ_det.timed_run("", image_bytes=active_suspect_bytes)
-        univ_dict = univ_res.to_dict()
-        all_detector_results["univfd"] = univ_dict
-        univfd_details = univ_dict.get("details", {})
-        univfd_score = univ_dict.get("score")
-        if univfd_score is not None:
-            evidence_list.append({
-                "detector": "univfd",
-                "version": univ_res.version,
-                "category": "AI_GENERATED",
-                "score": round(univfd_score, 4),
-                "reliability": 0.85,
-                "tag": "PROVEN",
-                "notes": univfd_details.get("evidence", [])[:2],
-                "evidence": univfd_details,
-            })
-    except Exception as e:
-        logger.debug("UnivFD detector failed: %s", e)
-
-    # 3c. Diffusion Reconstruction Contrastive Detector (DRCT - ICML 2024 ConvNeXt)
     drct_score: Optional[float] = None
     drct_details: dict[str, Any] = {}
-    try:
-        drct_det = get_drct_detector()
-        drct_res = drct_det.timed_run("", image_bytes=active_suspect_bytes)
-        drct_dict = drct_res.to_dict()
-        all_detector_results["drct"] = drct_dict
-        drct_details = drct_dict.get("details", {})
-        drct_score = drct_dict.get("score")
-        if drct_score is not None:
-            evidence_list.append({
-                "detector": "drct",
-                "version": drct_res.version,
-                "category": "AI_GENERATED",
-                "score": round(drct_score, 4),
-                "reliability": 0.85,
-                "tag": "PROVEN",
-                "notes": drct_details.get("evidence", [])[:2],
-                "evidence": drct_details,
-            })
-    except Exception as e:
-        logger.debug("DRCT detector failed: %s", e)
-
-    # 3d. Diffusion Reconstruction Error Detector (DIRE - ICCV 2023 ResNet-18)
     dire_score: Optional[float] = None
     dire_details: dict[str, Any] = {}
-    try:
-        dire_det = get_dire_detector()
-        dire_res = dire_det.timed_run("", image_bytes=active_suspect_bytes)
-        dire_dict = dire_res.to_dict()
-        all_detector_results["dire"] = dire_dict
-        dire_details = dire_dict.get("details", {})
-        dire_score = dire_dict.get("score")
-        if dire_score is not None:
-            evidence_list.append({
-                "detector": "dire",
-                "version": dire_res.version,
-                "category": "AI_GENERATED",
-                "score": round(dire_score, 4),
-                "reliability": 0.85,
-                "tag": "PROVEN",
-                "notes": dire_details.get("evidence", [])[:2],
-                "evidence": dire_details,
-            })
-    except Exception as e:
-        logger.debug("DIRE detector failed: %s", e)
+
+    def _eval_univfd():
+        try:
+            return get_univfd_detector().timed_run("", image_bytes=active_suspect_bytes)
+        except Exception as e:
+            logger.debug("UnivFD detector failed: %s", e)
+            return None
+
+    def _eval_drct():
+        try:
+            return get_drct_detector().timed_run("", image_bytes=active_suspect_bytes)
+        except Exception as e:
+            logger.debug("DRCT detector failed: %s", e)
+            return None
+
+    def _eval_dire():
+        try:
+            return get_dire_detector().timed_run("", image_bytes=active_suspect_bytes)
+        except Exception as e:
+            logger.debug("DIRE detector failed: %s", e)
+            return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        fut_univ = executor.submit(_eval_univfd)
+        fut_drct = executor.submit(_eval_drct)
+        fut_dire = executor.submit(_eval_dire)
+        univ_res = fut_univ.result()
+        drct_res = fut_drct.result()
+        dire_res = fut_dire.result()
+
+    if univ_res:
+        try:
+            univ_dict = univ_res.to_dict()
+            all_detector_results["univfd"] = univ_dict
+            univfd_details = univ_dict.get("details", {})
+            univfd_score = univ_dict.get("score")
+            if univfd_score is not None:
+                evidence_list.append({
+                    "detector": "univfd",
+                    "version": univ_res.version,
+                    "category": "AI_GENERATED",
+                    "score": round(univfd_score, 4),
+                    "reliability": 0.85,
+                    "tag": "PROVEN",
+                    "notes": univfd_details.get("evidence", [])[:2],
+                    "evidence": univfd_details,
+                })
+        except Exception as e:
+            logger.debug("UnivFD processing failed: %s", e)
+
+    if drct_res:
+        try:
+            drct_dict = drct_res.to_dict()
+            all_detector_results["drct"] = drct_dict
+            drct_details = drct_dict.get("details", {})
+            drct_score = drct_dict.get("score")
+            if drct_score is not None:
+                evidence_list.append({
+                    "detector": "drct",
+                    "version": drct_res.version,
+                    "category": "AI_GENERATED",
+                    "score": round(drct_score, 4),
+                    "reliability": 0.85,
+                    "tag": "PROVEN",
+                    "notes": drct_details.get("evidence", [])[:2],
+                    "evidence": drct_details,
+                })
+        except Exception as e:
+            logger.debug("DRCT processing failed: %s", e)
+
+    if dire_res:
+        try:
+            dire_dict = dire_res.to_dict()
+            all_detector_results["dire"] = dire_dict
+            dire_details = dire_dict.get("details", {})
+            dire_score = dire_dict.get("score")
+            if dire_score is not None:
+                evidence_list.append({
+                    "detector": "dire",
+                    "version": dire_res.version,
+                    "category": "AI_GENERATED",
+                    "score": round(dire_score, 4),
+                    "reliability": 0.85,
+                    "tag": "PROVEN",
+                    "notes": dire_details.get("evidence", [])[:2],
+                    "evidence": dire_details,
+                })
+        except Exception as e:
+            logger.debug("DIRE processing failed: %s", e)
 
     # 4. Reference Comparison & Crop Detection (if Reference Image provided)
     crop_info: Optional[dict] = None

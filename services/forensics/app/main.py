@@ -89,15 +89,29 @@ class AnalyzeRequest(BaseModel):
 async def startup_warmup():
     """Warm up PyTorch deep learning backbones at startup so user analysis requests are instant."""
     try:
-        from app.detectors.univfd import get_univfd_detector
-        from app.detectors.drct import get_drct_detector
-        from app.detectors.dire import get_dire_detector
+        import os
+        os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+
+        from app.detectors.univfd import get_univfd_detector, _load_univfd_components
+        from app.detectors.drct import get_drct_detector, _load_drct_components
+        from app.detectors.dire import get_dire_detector, _load_dire_components
         from app.detectors.ai_detector import get_ai_detector
+        from app.models.ai_segmentation import get_ai_segmentation_model
+
+        # Instantiate detectors
         get_univfd_detector()
         get_drct_detector()
         get_dire_detector()
         get_ai_detector()
-        logger.info("Forensic deep neural networks warmed up successfully.")
+
+        # Eagerly load neural weights into RAM on startup
+        _load_univfd_components()
+        _load_drct_components()
+        _load_dire_components()
+        get_ai_segmentation_model()._load()
+
+        logger.info("Forensic deep neural networks warmed up and cached in RAM successfully.")
     except Exception as e:
         logger.warning(f"Startup warmup encountered non-fatal notice: {e}")
 

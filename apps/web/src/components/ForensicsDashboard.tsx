@@ -134,17 +134,17 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     name: 'Stage 5/7: JPEG Grid Alignment & Resampling',
     desc: 'Checking 8×8 block origin alignment, DCT histogram gap profiles, and Radon transform interpolation peaks...',
-    threshold: 78,
+    threshold: 70,
   },
   {
-    name: 'Stage 6/7: Neural Deep Learning Inpainting Detection',
-    desc: 'Executing multi-generator UNet + EfficientNet-B3 segmentation across suspect pixel coordinates...',
-    threshold: 90,
+    name: 'Stage 6/7: Parallel Foundation AI (UnivFD ViT + DRCT + DIRE)',
+    desc: 'Executing multi-generator CLIP-ViT and ConvNeXt reconstruction contrastive models concurrently...',
+    threshold: 88,
   },
   {
-    name: 'Stage 7/7: Multi-Detector Evidence Calibration & Fusion',
-    desc: 'Cross-corroborating physical signals, eliminating false alarms, and calculating Boolean mask union...',
-    threshold: 98,
+    name: 'Stage 7/7: Multi-Detector Majority Consensus & Fusion',
+    desc: 'Cross-corroborating optical sensor physics with foundation AI consensus to veto single-model anomalies...',
+    threshold: 96,
   },
   {
     name: 'Analysis Complete: Finalizing Report',
@@ -156,13 +156,13 @@ const PIPELINE_STAGES: PipelineStage[] = [
 const DETECTOR_CHIPS = [
   { id: 'meta', label: 'EXIF / C2PA', minPct: 14 },
   { id: 'ela', label: 'Error Level Analysis', minPct: 28 },
-  { id: 'noise', label: 'Sensor Noise Field', minPct: 46 },
-  { id: 'dct', label: 'DCT 2D FFT Spectrum', minPct: 64 },
-  { id: 'grid', label: 'JPEG 8×8 Grid', minPct: 72 },
-  { id: 'resample', label: 'Resampling Radon', minPct: 78 },
-  { id: 'copy_move', label: 'Copy-Move SIFT/ORB', minPct: 84 },
-  { id: 'ai', label: 'AI Generative UNet', minPct: 90 },
-  { id: 'fusion', label: 'Multi-Signal Fusion', minPct: 98 },
+  { id: 'noise', label: 'Sensor Noise Field', minPct: 44 },
+  { id: 'dct', label: 'DCT 2D FFT Spectrum', minPct: 56 },
+  { id: 'grid', label: 'JPEG 8×8 Grid', minPct: 66 },
+  { id: 'resample', label: 'Resampling Radon', minPct: 74 },
+  { id: 'copy_move', label: 'Copy-Move SIFT/ORB', minPct: 80 },
+  { id: 'ai', label: 'UnivFD & DRCT AI', minPct: 88 },
+  { id: 'fusion', label: 'Consensus & Fusion', minPct: 95 },
 ];
 
 export default function ForensicsDashboard() {
@@ -224,12 +224,25 @@ export default function ForensicsDashboard() {
       setElapsedSeconds(Math.round(elapsed * 10) / 10);
 
       setProgress((prev) => {
-        if (prev >= 98) return 98;
-        const remaining = 98 - prev;
-        const step = Math.max(0.35, remaining * 0.045);
-        return Math.min(98, Math.round((prev + step) * 10) / 10);
+        if (prev >= 96) {
+          // Gently creep forward while backend finalizes without hard-freezing
+          return Math.min(97.5, Math.round((prev + 0.05) * 10) / 10);
+        }
+        // Smooth progression calibrated to the parallel execution timeline (~5-8s)
+        let target = 95;
+        if (elapsed < 1.5) {
+          target = (elapsed / 1.5) * 30;
+        } else if (elapsed < 4.0) {
+          target = 30 + ((elapsed - 1.5) / 2.5) * 35;
+        } else if (elapsed < 7.0) {
+          target = 65 + ((elapsed - 4.0) / 3.0) * 25;
+        } else {
+          target = 90 + Math.min(6, (elapsed - 7.0) * 0.8);
+        }
+        const step = Math.max(0.25, (target - prev) * 0.18);
+        return Math.min(96, Math.round((prev + step) * 10) / 10);
       });
-    }, 150);
+    }, 100);
 
     try {
       const formData = new FormData();
