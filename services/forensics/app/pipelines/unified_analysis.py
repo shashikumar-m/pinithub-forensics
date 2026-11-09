@@ -754,6 +754,15 @@ def run_unified_analysis(
     noise_ev = noise_details.get("evidence", {})
     noise_std_val = float(noise_ev.get("std_variance") or 0.0)
     resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
+    cfa_details = all_detector_results.get("cfa_demosaicing", {}).get("details", {})
+    cfa_status = cfa_details.get("status")
+    cfa_score_val = float(all_detector_results.get("cfa_demosaicing", {}).get("score") or 0.0)
+    corneal_score_val = float(all_detector_results.get("corneal_reflection", {}).get("score") or 0.0)
+    face_details = all_detector_results.get("face_biometrics", {}).get("details", {})
+    face_status = face_details.get("status")
+    dire_score_val = float(all_detector_results.get("dire", {}).get("score") or 0.0)
+    drct_score_val = float(all_detector_results.get("drct", {}).get("score") or 0.0)
+    univfd_score_val = float(all_detector_results.get("univfd", {}).get("score") or 0.0)
 
     # Check for manual user edits: spliced image, text added/overlaid, copy-move duplication, EXIF thumbnail mismatch, or editing software
     thumb_det_res = all_detector_results.get("thumbnail_discrepancy", {}).get("details", {})
@@ -771,9 +780,33 @@ def run_unified_analysis(
         or has_c2pa_edited
     )
 
-    # Suppress spurious regions on clean camera photos when no detector found edits.
-    # NEVER suppress if classical detectors or metadata found evidence of manual tampering.
-    suppress_regions = (ai_status == "NO_AI_EVIDENCE" and not has_reference and not has_manual_tamper_evidence)
+    has_ai_provenance = (
+        ai_provenance in ("AI_GENERATED", "CANVA_DESIGN") or
+        editing_software == "Canva"
+    )
+
+    deep_real_votes = sum([
+        1 for s in (
+            univfd_score_val < 0.35,
+            drct_score_val < 0.40,
+            dire_score_val < 0.35,
+        ) if s
+    ])
+    has_majority_real_consensus = (deep_real_votes >= 2) and not has_ai_provenance
+
+    # Suppress spurious regions on authentic camera photos when no manual tampering exists.
+    # UNet false alarms (e.g. smooth evening skies, uniform walls) must be suppressed when foundation models
+    # or biological face biometrics confirm authentic optical photography.
+    suppress_regions = (
+        (
+            ai_status == "NO_AI_EVIDENCE"
+            or has_majority_real_consensus
+            or (face_status == "NATURAL_BIOMETRIC_VERIFIED" and univfd_score_val < 0.40)
+        )
+        and not has_reference
+        and not has_manual_tamper_evidence
+        and cfa_status != "CFA_DISCONTINUITY"
+    )
 
     total_pixels = h * w
     if suppress_regions:
@@ -809,7 +842,7 @@ def run_unified_analysis(
 
             # Decide editTypeGuess
             edit_type = "splicing"
-            if ai_status in ("AI_EDITED_LOCAL", "AI_GENERATED") and ai_score > 0.3:
+            if (ai_status in ("AI_EDITED_LOCAL", "AI_GENERATED") or dire_score_val >= 0.60 or univfd_score_val >= 0.50) and (cfa_status == "CFA_DISCONTINUITY" or has_c2pa_ai):
                 edit_type = "generative_fill"
             elif len(copy_points) > 0:
                 edit_type = "copy_move"
@@ -843,22 +876,6 @@ def run_unified_analysis(
             verdict = "NOT_EDITED"
         else:
             verdict = "INCONCLUSIVE"
-
-    # Check if local AI edit has classical corroboration (per Section 14 False-Positive Control)
-    ela_score_val = float(all_detector_results.get("ela", {}).get("score") or 0.0)
-    noise_details = all_detector_results.get("noise_residual", {}).get("details", {})
-    noise_ev = noise_details.get("evidence", {})
-    noise_std_val = float(noise_ev.get("std_variance") or 0.0)
-    resampling_score_val = float(all_detector_results.get("resampling", {}).get("score") or 0.0)
-    cfa_details = all_detector_results.get("cfa_demosaicing", {}).get("details", {})
-    cfa_status = cfa_details.get("status")
-    cfa_score_val = float(all_detector_results.get("cfa_demosaicing", {}).get("score") or 0.0)
-    corneal_score_val = float(all_detector_results.get("corneal_reflection", {}).get("score") or 0.0)
-    face_details = all_detector_results.get("face_biometrics", {}).get("details", {})
-    face_status = face_details.get("status")
-    dire_score_val = float(all_detector_results.get("dire", {}).get("score") or 0.0)
-    drct_score_val = float(all_detector_results.get("drct", {}).get("score") or 0.0)
-    univfd_score_val = float(all_detector_results.get("univfd", {}).get("score") or 0.0)
 
     # Multi-Modal Consensus:
     # Generative AI requires multi-detector consensus (at least 2 independent signals),
