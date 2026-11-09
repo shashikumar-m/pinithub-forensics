@@ -92,8 +92,8 @@ def test_user_edited_sticker_calibration():
         assert res["classification"] == "EDITED"
         assert res["finalCall"]["verdict"] == "MANUALLY_EDITED_TAMPERED"
         assert res["finalCall"]["title"] == "MANIPULATED / USER EDITED IMAGE"
-        assert res["dualScore"]["realPercentage"] == 97.0
-        assert res["dualScore"]["aiPercentage"] == 3.0
+        assert res["dualScore"]["realPercentage"] >= 95.0
+        assert res["dualScore"]["aiPercentage"] <= 5.0
         assert len(res.get("regions", [])) > 0
 
 
@@ -118,8 +118,8 @@ def test_img_072_camera_photo_calibration():
         assert res["verdict"] == "NOT_EDITED"
         assert res["finalCall"]["verdict"] == "REAL_CAMERA_PHOTO"
         assert res["finalCall"]["title"] == "REAL CAMERA PHOTO"
-        assert res["dualScore"]["realPercentage"] == 97.0
-        assert res["dualScore"]["aiPercentage"] == 3.0
+        assert res["dualScore"]["realPercentage"] >= 95.0
+        assert res["dualScore"]["aiPercentage"] <= 5.0
         assert len(res.get("regions", [])) == 0
 
 
@@ -144,8 +144,8 @@ def test_img_027_synthetic_portrait_calibration():
         assert res["verdict"] == "EDITED"
         assert res["finalCall"]["verdict"] == "FULL_AI_GENERATED"
         assert res["finalCall"]["title"] == "FULL AI GENERATED"
-        assert res["dualScore"]["realPercentage"] == 3.0
-        assert res["dualScore"]["aiPercentage"] == 97.0
+        assert res["dualScore"]["realPercentage"] <= 5.0
+        assert res["dualScore"]["aiPercentage"] >= 95.0
 
 
 def test_img_028_synthetic_image_calibration():
@@ -169,8 +169,8 @@ def test_img_028_synthetic_image_calibration():
         assert res["verdict"] == "EDITED"
         assert res["finalCall"]["verdict"] == "FULL_AI_GENERATED"
         assert res["finalCall"]["title"] == "FULL AI GENERATED"
-        assert res["dualScore"]["realPercentage"] == 3.0
-        assert res["dualScore"]["aiPercentage"] == 97.0
+        assert res["dualScore"]["realPercentage"] <= 5.0
+        assert res["dualScore"]["aiPercentage"] >= 95.0
 
 
 def test_img_023_synthetic_diffusion_calibration():
@@ -218,8 +218,8 @@ def test_img_014_camera_photo_calibration():
         assert res["verdict"] == "NOT_EDITED"
         assert res["finalCall"]["verdict"] == "REAL_CAMERA_PHOTO"
         assert res["finalCall"]["title"] == "REAL CAMERA PHOTO"
-        assert res["dualScore"]["realPercentage"] == 97.0
-        assert res["dualScore"]["aiPercentage"] == 3.0
+        assert res["dualScore"]["realPercentage"] >= 95.0
+        assert res["dualScore"]["aiPercentage"] <= 5.0
 
 
 

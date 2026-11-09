@@ -1077,32 +1077,69 @@ def run_unified_analysis(
         binary_mask = np.zeros((h, w), dtype=np.uint8)
         composite_heat = np.zeros((h, w), dtype=np.float32)
 
-    # Calibration calculation
+    # Dynamic continuous score computation
+    # Synthesize foundation model signals and physical sensor metrics:
+    # univfd_score_val (CLIP ViT), drct_score_val (ConvNeXt), dire_score_val (ResNet-18),
+    # cfa_score_val (Bayer demosaicing lattice), noise_std_val (PRNU sensor noise)
+    raw_ai_ensemble = (
+        0.35 * univfd_score_val
+        + 0.35 * drct_score_val
+        + 0.20 * dire_score_val
+        + 0.10 * max(0.0, cfa_score_val - 0.10)
+    )
+
     if is_screenshot:
-        calibrated_prob = 0.02
+        # Digital screen capture: UI elements, clean vector text, 0 sensor noise
+        calibrated_prob = 0.000
     elif classification == "CAMERA_CAPTURED":
-        calibrated_prob = 0.03
+        if has_camera_hardware_exif and has_verified_camera_and_biology:
+            # Verified camera hardware optics (Nikon, Canon, Sony, iPhone, etc.)
+            # + verified biological facial pores + natural semantic distribution.
+            # Scale continuously from 0.000 (100.0% Real) based on residual model variance.
+            if raw_ai_ensemble <= 0.05:
+                calibrated_prob = 0.000  # Pristine camera capture = 100.0% Real
+            else:
+                calibrated_prob = round(min(0.045, max(0.001, (raw_ai_ensemble - 0.05) * 0.30)), 3)
+        elif has_verified_camera_and_biology:
+            # Verified Bayer CFA + biological facial pores
+            if raw_ai_ensemble <= 0.035:
+                calibrated_prob = 0.000
+            else:
+                calibrated_prob = round(min(0.049, max(0.001, raw_ai_ensemble * 0.25)), 3)
+        else:
+            # General camera capture
+            calibrated_prob = round(min(0.050, max(0.000, raw_ai_ensemble * 0.25)), 3)
     elif classification == "DIGITALLY_ENHANCED":
-        calibrated_prob = 0.12
+        # Camera capture with heavy digital filters, HDR, or tone curves
+        filter_signal = max(ela_score_val * 0.40, raw_ai_ensemble * 0.50)
+        calibrated_prob = round(min(0.25, max(0.06, 0.08 + filter_signal)), 3)
     elif classification == "AI_GENERATED":
-        calibrated_prob = round(min(0.98, max(0.85, 0.70 + 0.28 * ai_score)), 2)
+        # Full generative AI media (Diffusion, GAN)
+        # Scale dynamically from 0.880 to 1.000 based on ensemble strength
+        ai_strength = max(ai_score, raw_ai_ensemble, dire_score_val, drct_score_val, univfd_score_val)
+        if ai_votes >= 4 or (ai_strength >= 0.96 and cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"):
+            calibrated_prob = 1.000  # 100.0% AI
+        else:
+            calibrated_prob = round(min(0.998, max(0.880, 0.72 + 0.28 * ai_strength)), 3)
     elif classification == "AI_EDITED":
-        # Area-weighted calibration for localized generative inpainting:
+        # Area-weighted continuous calibration for localized generative inpainting:
         # Authentic photographic base represents the real percentage;
         # localized AI inpainting represents the AI likelihood.
-        inpaint_fraction = min(0.65, max(0.12, (affected_area_pct / 100.0) * 0.90 + 0.05))
-        calibrated_prob = round(inpaint_fraction, 2)
+        inpaint_signal = (affected_area_pct / 100.0) * 0.80 + 0.20 * max(univfd_score_val, drct_score_val, dire_score_val)
+        calibrated_prob = round(min(0.85, max(0.05, inpaint_signal)), 3)
     elif classification == "EDITED":
-        # ZeroGPT calibration for edited real camera photograph:
-        # Authentic camera sensor optics represent ~97% Real,
-        # with localized manual edit / sticker / text overlay accounting for ~3% Edited Likelihood.
-        calibrated_prob = 0.03
+        # Real camera photograph with localized manual alteration / added sticker / text overlay
+        # Likelihood dynamically reflects the affected area
+        tamper_signal = (affected_area_pct / 100.0) * 0.90 + 0.015
+        calibrated_prob = round(min(0.40, max(0.015, tamper_signal)), 3)
     elif verdict == "EDITED" and crop_info and crop_info.get("status") == "DETECTED":
-        calibrated_prob = 0.95
+        crop_fraction = float(crop_info.get("cropPercentage", 50.0)) / 100.0
+        calibrated_prob = round(min(0.99, max(0.70, 0.60 + 0.38 * crop_fraction)), 3)
     elif assessment.probability is not None:
-        calibrated_prob = round(assessment.probability, 2)
+        calibrated_prob = round(min(1.0, max(0.0, assessment.probability)), 3)
     else:
-        calibrated_prob = 0.50
+        # Dynamic inconclusive lean: reflects the subtle direction of evidence instead of flat 50/50
+        calibrated_prob = round(min(0.58, max(0.42, 0.50 + 0.20 * (raw_ai_ensemble - 0.50))), 3)
 
     if classification == "AI_GENERATED":
         if ai_provenance == "CANVA_DESIGN" or editing_software == "Canva":
