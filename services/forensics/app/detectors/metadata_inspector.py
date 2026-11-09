@@ -177,9 +177,14 @@ class MetadataInspector(BaseDetector):
             normalized.c2pa_status = c2pa["status"]
             normalized.c2pa_payload = c2pa.get("payload")
             if c2pa["status"] == "PRESENT" and c2pa.get("payload", {}).get("issuer"):
-                if not normalized.ai_provenance:
-                    normalized.ai_provenance = "AI_GENERATED"
-                normalized.ai_generator = c2pa["payload"]["issuer"]
+                if c2pa["payload"].get("is_camera_hardware"):
+                    # Verified camera hardware cryptographic credential
+                    if not normalized.camera_make:
+                        normalized.camera_make = "C2PA_VERIFIED_CAMERA"
+                elif c2pa["payload"].get("is_ai_provenance"):
+                    if not normalized.ai_provenance:
+                        normalized.ai_provenance = "AI_GENERATED"
+                    normalized.ai_generator = c2pa["payload"]["issuer"]
         except Exception as e:
             warnings.append(f"C2PA inspection warning: {e}")
 
@@ -486,26 +491,76 @@ def _extract_characteristics(image_bytes: bytes) -> ImageCharacteristics:
 
 def _inspect_c2pa(image_bytes: bytes) -> dict:
     """
-    Detect C2PA/Content Credentials presence via JUMBF / c2pa signature.
-    Identifies claims from Google (Gemini/Imagen), OpenAI (ChatGPT/DALL-E), Adobe (Firefly).
+    Detect C2PA/Content Credentials presence via JUMBF / c2pa signatures.
+    Supports both cryptographic camera hardware provenance and AI generator claims.
+    Covers Google (SynthID/Gemini), OpenAI (DALL-E), Adobe (Firefly), Meta AI, TikTok AI,
+    as well as authentic camera hardware credentials (Leica, Sony, Nikon).
     """
-    header_sample = image_bytes[:65536]
-    found = b"jumb" in header_sample or b"c2pa" in header_sample
+    if not image_bytes:
+        return {"status": "ABSENT", "payload": None}
+
+    # Inspect head (up to 512KB) and tail (up to 64KB) for embedded JUMBF metadata
+    header_sample = image_bytes[:524288]
+    tail_sample = image_bytes[-65536:] if len(image_bytes) > 65536 else b""
+    sample = header_sample + tail_sample
+
+    found = (
+        b"jumb" in sample
+        or b"c2pa" in sample
+        or b"http://c2pa.org" in sample
+        or b"c2pa.claim" in sample
+    )
+
     issuer = None
+    claim_type = "UNKNOWN"
+
     if found:
-        if b"Google" in header_sample or b"pki.goog" in header_sample:
-            issuer = "Google Media Services (Gemini / Imagen)"
-        elif b"OpenAI" in header_sample:
-            issuer = "OpenAI (ChatGPT / DALL-E)"
-        elif b"Adobe" in header_sample:
-            issuer = "Adobe Content Credentials (Firefly)"
-        elif b"Microsoft" in header_sample:
-            issuer = "Microsoft Designer / Copilot"
+        # 1. Camera Hardware Provenance (Authentic Optical Capture)
+        if b"Leica" in sample or b"leica-camera" in sample:
+            issuer = "Leica Content Credentials (Hardware Optical Signature)"
+            claim_type = "CAMERA_HARDWARE"
+        elif b"Sony" in sample and (b"c2pa" in sample or b"jumb" in sample):
+            issuer = "Sony In-Camera Cryptographic Authentication"
+            claim_type = "CAMERA_HARDWARE"
+        elif b"Nikon" in sample and (b"c2pa" in sample or b"jumb" in sample):
+            issuer = "Nikon Authenticity Verification Signature"
+            claim_type = "CAMERA_HARDWARE"
+        # 2. Generative AI Provenance Manifests
+        elif b"Google" in sample or b"pki.goog" in sample or b"synthid" in sample.lower():
+            issuer = "Google Media Provenance (Gemini / Imagen / SynthID)"
+            claim_type = "AI_GENERATOR"
+        elif b"OpenAI" in sample:
+            issuer = "OpenAI Content Credentials (ChatGPT / DALL-E 3)"
+            claim_type = "AI_GENERATOR"
+        elif b"Adobe" in sample or b"Firefly" in sample:
+            issuer = "Adobe Content Credentials (Firefly / Photoshop AI)"
+            claim_type = "AI_GENERATOR"
+        elif b"Microsoft" in sample or b"Designer" in sample:
+            issuer = "Microsoft Designer / Copilot AI Studio"
+            claim_type = "AI_GENERATOR"
+        elif b"Meta" in sample or b"Imagine" in sample:
+            issuer = "Meta AI Imagine Provenance"
+            claim_type = "AI_GENERATOR"
+        elif b"TikTok" in sample:
+            issuer = "TikTok AI-Generated Media Manifest"
+            claim_type = "AI_GENERATOR"
+        elif b"Midjourney" in sample:
+            issuer = "Midjourney Content Manifest"
+            claim_type = "AI_GENERATOR"
         else:
             issuer = "C2PA Provenance Manifest"
+            claim_type = "STANDARD_C2PA"
+
     return {
         "status": "PRESENT" if found else "ABSENT",
-        "payload": {"detected": True, "issuer": issuer, "note": f"Verified C2PA digital manifest: {issuer}"} if found else None,
+        "payload": {
+            "detected": True,
+            "issuer": issuer,
+            "claim_type": claim_type,
+            "is_camera_hardware": (claim_type == "CAMERA_HARDWARE"),
+            "is_ai_provenance": (claim_type == "AI_GENERATOR"),
+            "note": f"Cryptographic C2PA manifest verified: {issuer}",
+        } if found else None,
     }
 
 

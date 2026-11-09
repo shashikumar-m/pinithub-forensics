@@ -169,26 +169,57 @@ class DRCTDetector(BaseDetector):
 
         try:
             pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            w, h = pil_img.size
+
             preprocess = transforms.Compose([
                 transforms.Resize(INPUT_SIZE),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ])
-            tensor = preprocess(pil_img).unsqueeze(0)
+
+            tensors = [preprocess(pil_img)]
+            # Multi-scale patch tiling for high-resolution images (>600px)
+            if w >= 600 and h >= 600:
+                cw, ch = int(w * 0.5), int(h * 0.5)
+                left, top = (w - cw) // 2, (h - ch) // 2
+                tensors.append(preprocess(pil_img.crop((left, top, left + cw, top + ch))))
+                tensors.append(preprocess(pil_img.crop((0, 0, cw, ch))))
+                tensors.append(preprocess(pil_img.crop((w - cw, h - ch, w, h))))
+
+            batch_tensor = torch.stack(tensors, dim=0)
 
             with torch.no_grad():
-                features = backbone(tensor)
+                features = backbone(batch_tensor)
                 logits, proj_norm = head(features)
-                prob = float(torch.sigmoid(logits).item())
-                margin = float(torch.norm(proj_norm, p=2).item())
+                probs = torch.sigmoid(logits).squeeze(-1)
+                margin = float(torch.norm(proj_norm[0], p=2).item())
+
+            global_prob = float(probs[0].item()) if probs.dim() > 0 else float(probs.item())
+            if probs.dim() > 0 and len(probs) > 1:
+                patch_max_prob = float(probs[1:].max().item())
+                patch_mean_prob = float(probs[1:].mean().item())
+                if patch_max_prob >= 0.70 and global_prob < 0.50:
+                    prob = float(0.40 * global_prob + 0.60 * patch_max_prob)
+                    patch_anomaly = True
+                else:
+                    prob = float(0.70 * global_prob + 0.30 * patch_mean_prob)
+                    patch_anomaly = False
+            else:
+                patch_max_prob = global_prob
+                prob = global_prob
+                patch_anomaly = False
 
             evidence = [
-                f"Diffusion latent contrastive probability: {prob:.4f}",
+                f"Diffusion latent contrastive probability: {prob:.4f} (global: {global_prob:.4f}, patch peak: {patch_max_prob:.4f})",
+                f"Multi-scale patches evaluated: {len(tensors)} (resolutions: native {w}x{h} + focal crops)",
                 f"Contrastive manifold projection norm: {margin:.4f}",
                 "Backbone: ConvNeXt-Tiny (multi-scale diffusion artifact encoder)",
             ]
 
-            if prob >= 0.70:
+            if patch_anomaly:
+                status = "AI_DIFFUSION_DETECTED"
+                evidence.append(f"Localized diffusion patch anomaly detected (peak activation: {patch_max_prob:.4f}).")
+            elif prob >= 0.70:
                 status = "AI_DIFFUSION_DETECTED"
                 evidence.append("Latent features cluster strongly with diffusion reconstruction signatures (SD/Midjourney/DALL-E).")
             elif prob <= 0.35:
@@ -209,6 +240,9 @@ class DRCTDetector(BaseDetector):
                 details={
                     "status": status,
                     "probability": round(prob, 4),
+                    "global_probability": round(global_prob, 4),
+                    "patch_max_probability": round(patch_max_prob, 4),
+                    "multiscale_patches": len(tensors),
                     "contrastive_margin": round(margin, 4),
                     "backbone": "convnext_tiny",
                     "evidence": evidence,

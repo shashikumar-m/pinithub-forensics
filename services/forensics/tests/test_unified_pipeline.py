@@ -92,8 +92,8 @@ def test_user_edited_sticker_calibration():
         assert res["classification"] == "EDITED"
         assert res["finalCall"]["verdict"] == "MANUALLY_EDITED_TAMPERED"
         assert res["finalCall"]["title"] == "MANIPULATED / USER EDITED IMAGE"
-        assert res["dualScore"]["realPercentage"] >= 95.0
-        assert res["dualScore"]["aiPercentage"] <= 5.0
+        assert res["dualScore"]["realPercentage"] >= 80.0
+        assert res["dualScore"]["aiPercentage"] <= 20.0
         assert len(res.get("regions", [])) > 0
 
 

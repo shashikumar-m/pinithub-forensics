@@ -150,26 +150,59 @@ class UnivFDDetector(BaseDetector):
 
         try:
             pil_img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            w, h = pil_img.size
+
             transform = transforms.Compose([
                 transforms.Resize(CLIP_SIZE, interpolation=transforms.InterpolationMode.BICUBIC),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=CLIP_MEAN, std=CLIP_STD),
             ])
-            tensor = transform(pil_img).unsqueeze(0)
+
+            tensors = [transform(pil_img)]
+            # Multi-scale patch tiling for high-resolution images (>600px)
+            # Evaluates global downscale + high-res focal crops to catch localized inpainting
+            if w >= 600 and h >= 600:
+                cw, ch = int(w * 0.5), int(h * 0.5)
+                left, top = (w - cw) // 2, (h - ch) // 2
+                tensors.append(transform(pil_img.crop((left, top, left + cw, top + ch))))
+                tensors.append(transform(pil_img.crop((0, 0, cw, ch))))
+                tensors.append(transform(pil_img.crop((w - cw, h - ch, w, h))))
+
+            batch_tensor = torch.stack(tensors, dim=0)
 
             with torch.no_grad():
-                feat = backbone(tensor)
-                logit = probe(feat)
-                raw_prob = float(torch.sigmoid(logit).item())
+                feat = backbone(batch_tensor)
+                logits = probe(feat)
+                probs = torch.sigmoid(logits).squeeze(-1)
+
+            global_prob = float(probs[0].item()) if probs.dim() > 0 else float(probs.item())
+            if probs.dim() > 0 and len(probs) > 1:
+                patch_max_prob = float(probs[1:].max().item())
+                patch_mean_prob = float(probs[1:].mean().item())
+                # If a localized patch shows heavy generative anomaly, factor it into localized detection
+                if patch_max_prob >= 0.70 and global_prob < 0.50:
+                    raw_prob = float(0.40 * global_prob + 0.60 * patch_max_prob)
+                    patch_anomaly = True
+                else:
+                    raw_prob = float(0.70 * global_prob + 0.30 * patch_mean_prob)
+                    patch_anomaly = False
+            else:
+                patch_max_prob = global_prob
+                patch_mean_prob = global_prob
+                raw_prob = global_prob
+                patch_anomaly = False
 
             status = "AI_GENERATED" if raw_prob >= 0.50 else "AUTHENTIC"
             evidence: list[str] = [
-                f"Universal generator feature space probability: {raw_prob:.4f}",
+                f"Universal generator feature space probability: {raw_prob:.4f} (global: {global_prob:.4f}, patch peak: {patch_max_prob:.4f})",
+                f"Multi-scale patches evaluated: {len(tensors)} (resolutions: native {w}x{h} + focal crops)",
                 f"Backbone: OpenAI CLIP ViT-B/16 (768-dim semantic projection)",
                 "Model: UnivFD (CVPR 2023 Universal Fake Detection)",
             ]
 
-            if raw_prob >= 0.80:
+            if patch_anomaly:
+                evidence.append(f"Localized generative patch anomaly detected (peak patch activation: {patch_max_prob:.4f}).")
+            elif raw_prob >= 0.80:
                 evidence.append("Strong multi-modal semantic divergence consistent with synthetic diffusion/GAN generation.")
             elif raw_prob <= 0.20:
                 evidence.append("Visual semantic tokens align with authentic natural photographic distributions.")
@@ -183,7 +216,9 @@ class UnivFDDetector(BaseDetector):
                 details={
                     "status": status,
                     "score": round(raw_prob, 4),
-                    "logit": round(float(logit.item()), 4),
+                    "global_score": round(global_prob, 4),
+                    "patch_max_score": round(patch_max_prob, 4),
+                    "multiscale_patches": len(tensors),
                     "feature_dim": 768,
                     "evidence": evidence,
                 },
