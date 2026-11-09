@@ -870,9 +870,7 @@ def run_unified_analysis(
     ) or (
         ai_provenance in ("AI_EDITED", "AI_GENERATED")
     ) or (
-        cfa_status in ("CFA_DISCONTINUITY", "SYNTHETIC_GENERATIVE_LATTICE")
-    ) or (
-        cfa_score_val >= 0.70
+        cfa_status == "CFA_DISCONTINUITY"
     ) or (
         corneal_score_val >= 0.25
     ) or (
@@ -984,64 +982,61 @@ def run_unified_analysis(
                 verdict = "INCONCLUSIVE"
                 warnings.append("Potential localized anomalies detected by experimental AI model, but classical sensor noise and recompression checks show no corroboration.")
     elif ai_status == "AI_GENERATED" or has_ai_provenance:
-        # Check Option A: Digitally enhanced / filtered real photo or camera photo with unbroken CFA
-        # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
-        # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
-        # It is a digitally enhanced real photograph!
-        has_natural_freq = (
-            "natural 1/f" in ai_ev_joined
-            or "freq: 0.0" in ai_ev_joined
-            or float(ai_details.get("freq_score") or 0.0) <= 0.10
-        )
-
-        has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
-        # Principled Generalization: An image is ONLY a digitally enhanced real photo if the neural network
-        # does NOT detect high-confidence synthetic generation across salient subjects (p95 < 0.90 and p90 < 0.85).
-        # Generative diffusion/GAN models (Midjourney, DALL-E, SD) exhibit high peak activations (p95 >= 0.90)
-        # even when background is plain, and must remain FULL_AI_GENERATED.
-        has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
-
-        # Physical Camera Sensor & Biological Verification Override:
-        # An authentic physical camera capture is proven when:
-        # 1. Natural optical 1/f frequency decay (no periodic diffusion lattice)
-        # 2. Low canvas median activation (p50 < 0.20, meaning >50% of the image is non-generative)
-        # 3. Clean classical forensics (low ELA score < 0.18, no copy-move duplication points)
-        # 4. No AI provenance metadata
-        # 5. Corroborated by EITHER an unbroken Bayer CFA pattern OR verified natural human facial biometrics
-        #    with stationary CMOS sensor noise (noise_std < 145.0).
-        has_camera_hardware_or_biometrics = (
-            (has_unbroken_camera_cfa or (face_status == "NATURAL_BIOMETRIC_VERIFIED" and noise_std_val < 145.0))
-            and not has_classical_corroboration
-            and not has_ai_provenance
-            and has_natural_freq
-            and p50_num < 0.20
-            and ela_score_val < 0.18
-            and len(copy_points) == 0
-        )
-
-        if has_camera_hardware_or_biometrics:
+        if has_majority_real_consensus and not has_ai_provenance and not has_classical_corroboration and len(copy_points) == 0:
+            # Democratic 2+ Foundation Model Majority Consensus:
+            # Independent deep models (UnivFD, DRCT) confirm natural camera capture distribution.
+            # Suppress uncalibrated experimental UNet false alarm on authentic photographs.
             classification = "CAMERA_CAPTURED"
             verdict = "NOT_EDITED"
             ai_score = 0.03
             regions = []
         else:
-            is_digitally_enhanced = (
-                not has_ai_provenance
-                and not has_classical_corroboration
-                and not has_generative_subject_activation
-                and ela_score_val < 0.20
-                and len(copy_points) == 0
-                and (has_natural_freq and has_low_p50)
+            # Check Option A: Digitally enhanced / filtered real photo or camera photo with unbroken CFA
+            # When an authentic camera photo has heavy digital post-processing / HDR / smoothing,
+            # but NO generative AI provenance, NO copy-move points, low ELA score, and no diffusion lattice:
+            # It is a digitally enhanced real photograph!
+            has_natural_freq = (
+                "natural 1/f" in ai_ev_joined
+                or "freq: 0.0" in ai_ev_joined
+                or float(ai_details.get("freq_score") or 0.0) <= 0.10
             )
-            if is_digitally_enhanced:
-                classification = "DIGITALLY_ENHANCED"
+
+            has_low_p50 = (p50_num < 0.25) or any("p50: 0.0" in s or "p50: 0.1" in s for s in ai_ev_strs)
+            has_generative_subject_activation = (p95_num >= 0.90 or p90_num >= 0.85 or ai_score >= 0.90)
+
+            has_camera_hardware_or_biometrics = (
+                (has_unbroken_camera_cfa or (face_status == "NATURAL_BIOMETRIC_VERIFIED" and noise_std_val < 145.0))
+                and not has_classical_corroboration
+                and not has_ai_provenance
+                and has_natural_freq
+                and p50_num < 0.20
+                and ela_score_val < 0.18
+                and len(copy_points) == 0
+            )
+
+            if has_camera_hardware_or_biometrics:
+                classification = "CAMERA_CAPTURED"
                 verdict = "NOT_EDITED"
-                ai_score = 0.12
+                ai_score = 0.03
+                regions = []
             else:
-                classification = "AI_GENERATED"
-                verdict = "EDITED"
-                if ai_score < 0.85:
-                    ai_score = 0.95
+                is_digitally_enhanced = (
+                    not has_ai_provenance
+                    and not has_classical_corroboration
+                    and not has_generative_subject_activation
+                    and ela_score_val < 0.20
+                    and len(copy_points) == 0
+                    and (has_natural_freq and has_low_p50)
+                )
+                if is_digitally_enhanced:
+                    classification = "DIGITALLY_ENHANCED"
+                    verdict = "NOT_EDITED"
+                    ai_score = 0.12
+                else:
+                    classification = "AI_GENERATED"
+                    verdict = "EDITED"
+                    if ai_score < 0.85:
+                        ai_score = 0.95
     elif ai_provenance == "AI_EDITED":
         classification = "AI_EDITED"
         verdict = "EDITED"
