@@ -99,6 +99,26 @@ export interface ForensicsAnalysisResult {
     sensorVerification?: string;
     deviceDescription?: string | null;
   };
+  imageProperties?: {
+    fileSize?: number;
+    fileFormat?: string;
+    width?: number;
+    height?: number;
+    aspectRatio?: string | null;
+    megapixels?: number;
+    colorSpace?: string;
+    bitDepth?: number;
+    channels?: number;
+    chromaSubsampling?: string;
+    isProgressive?: boolean;
+    estimatedQuality?: number;
+  };
+  dqtProfile?: {
+    matchName?: string | null;
+    matchCategory?: string | null;
+    qualityEstimate?: number;
+    bestDistance?: number | null;
+  };
   warnings?: string[];
   limitations?: string[];
   executionMs?: number;
@@ -179,6 +199,8 @@ export default function ForensicsDashboard() {
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showImageDetails, setShowImageDetails] = useState(false);
 
   const suspectInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -189,6 +211,8 @@ export default function ForensicsDashboard() {
     setSuspectPreview(url);
     setResult(null);
     setError(null);
+    setShowHeatmap(false);
+    setShowImageDetails(false);
   }
 
   function handleDragOver(e: React.DragEvent) {
@@ -238,6 +262,8 @@ export default function ForensicsDashboard() {
     setSuspectPreview(null);
     setResult(null);
     setError(null);
+    setShowHeatmap(false);
+    setShowImageDetails(false);
     if (suspectInputRef.current) suspectInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   }
@@ -874,40 +900,141 @@ export default function ForensicsDashboard() {
                       </div>
                     </div>
 
-                    <div className="mt-2 flex justify-between text-[11px] text-slate-500 font-semibold px-1">
-                      <span className="text-emerald-700">🟢 100% Optical Sensor Match</span>
-                      <span className="text-slate-400">Total = 100% Complementary Evidence</span>
-                      <span className={isAiGen ? 'text-purple-700' : 'text-red-700'}>
-                        🔴 100% Synthetic / Tampered
-                      </span>
+                    {/* Interactive Options Toolbar: View Heatmap & Image Details */}
+                    <div className="mt-6 pt-5 border-t border-slate-200/90 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {/* Option 1: View Heatmap */}
+                        <button
+                          type="button"
+                          onClick={() => setShowHeatmap((prev) => !prev)}
+                          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
+                            showHeatmap
+                              ? 'bg-cyan-600 text-white shadow-cyan-600/25 ring-2 ring-cyan-500/40'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
+                          }`}
+                        >
+                          <span className="text-base">🗺️</span>
+                          <span>{showHeatmap ? 'Hide Heatmap' : 'View Heatmap of Image'}</span>
+                          {result.regions && result.regions.length > 0 ? (
+                            <span className="rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-black">
+                              {result.regions.length} {result.regions.length === 1 ? 'Region' : 'Regions'}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black">
+                              Clean
+                            </span>
+                          )}
+                        </button>
+
+                        {/* Option 2: Image Details */}
+                        <button
+                          type="button"
+                          onClick={() => setShowImageDetails((prev) => !prev)}
+                          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 cursor-pointer ${
+                            showImageDetails
+                              ? 'bg-indigo-600 text-white shadow-indigo-600/25 ring-2 ring-indigo-500/40'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
+                          }`}
+                        >
+                          <span className="text-base">📷</span>
+                          <span>{showImageDetails ? 'Hide Image Details' : 'Image Details'}</span>
+                          <span className="rounded-full bg-slate-200 text-slate-700 px-2 py-0.5 text-[10px] font-mono font-bold">
+                            {result.opticalMetadata?.hasExif ? 'EXIF' : 'Specs'}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Export Actions */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleExportJson}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          JSON
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportPdf}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          Export PDF
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* 2. Unified Forensic Inspection Workstation & Optical Canvas */}
-                {suspectPreview && (
-                  <ForensicWorkstationViewer
-                    suspectPreview={suspectPreview}
-                    heatmapUrl={result.artifacts?.heatmapUrl}
-                    maskUrl={result.artifacts?.maskUrl}
-                    dimensions={result.dimensions}
-                    regions={result.regions}
-                    classification={result.classification}
-                    executionMs={result.executionMs}
-                  />
-                )}
               </div>
             );
           })()}
 
+          {/* 2. Unified Forensic Inspection Workstation (Shown only when "View Heatmap of Image" is clicked) */}
+          {showHeatmap && suspectPreview && (
+            <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-slate-800 transition-all">
+              <ForensicWorkstationViewer
+                suspectPreview={suspectPreview}
+                heatmapUrl={result.artifacts?.heatmapUrl}
+                maskUrl={result.artifacts?.maskUrl}
+                dimensions={result.dimensions}
+                regions={result.regions}
+                classification={result.classification}
+                executionMs={result.executionMs}
+              />
+            </div>
+          )}
 
+          {/* Localized Tampered Regions (Shown when heatmap is open and regions exist) */}
+          {showHeatmap && result.regions && result.regions.length > 0 && (
+            <div className="rounded-2xl sm:rounded-3xl border border-amber-200 bg-white p-5 sm:p-7 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xl">✂️</span>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  Localized AI Tampering Regions ({result.regions.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                Specific bounding coordinates where Generative AI inpainting or manipulation was detected on the camera photo.
+              </p>
+              <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-[11px] font-semibold uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2.5">Region</th>
+                      <th className="px-3 py-2.5">Edit Type</th>
+                      <th className="px-3 py-2.5">Area %</th>
+                      <th className="px-3 py-2.5">Confidence</th>
+                      <th className="px-3 py-2.5">Coordinates [x, y, w, h]</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-mono">
+                    {result.regions.map((reg) => (
+                      <tr key={reg.id} className="hover:bg-slate-50/70">
+                        <td className="px-3 py-2.5 font-bold text-slate-800">{reg.id}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="rounded bg-amber-100 px-2 py-0.5 font-semibold text-amber-800">
+                            {reg.editTypeGuess}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-slate-700">{reg.areaPct}%</td>
+                        <td className="px-3 py-2.5 text-slate-700">{(reg.confidence * 100).toFixed(0)}%</td>
+                        <td className="px-3 py-2.5 text-slate-500">
+                          [{reg.bbox.x}, {reg.bbox.y}, {reg.bbox.w}, {reg.bbox.h}]
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-          {/* Decisive Image & Camera Capture Details Card */}
-          {(() => {
+          {/* 3. Decisive Image & Camera Capture Details Card (Shown when "Image Details" is clicked) */}
+          {showImageDetails && (() => {
             const metaEv = result.evidence?.find((e) => e.detector === 'metadata')?.evidence;
             const dqtEv = result.evidence?.find((e) => e.detector === 'dqt_fingerprint')?.evidence;
             const faceEv = result.evidence?.find((e) => e.detector === 'face_biometrics');
             const optMeta = result.opticalMetadata;
+            const imgProps = result.imageProperties;
 
             const hasExif = Boolean(optMeta?.hasExif ?? metaEv?.has_exif);
             const cameraMake = optMeta?.make || metaEv?.camera_make || metaEv?.tag_Make || null;
@@ -918,10 +1045,9 @@ export default function ForensicsDashboard() {
             const rawFNum = optMeta?.fNumber || metaEv?.tag_FNumber || null;
             const rawIso = optMeta?.iso || metaEv?.tag_ISOSpeedRatings || null;
 
-            const dqtName = dqtEv?.match_name || '';
-            const dqtCat = dqtEv?.match_category || '';
-            const isDqtHw = dqtCat === 'CAMERA_HARDWARE' || dqtName.toLowerCase().includes('samsung') || dqtName.toLowerCase().includes('apple') || dqtName.toLowerCase().includes('camera');
-            const dqtQuality = dqtEv?.quality_estimate;
+            const dqtProfile = result.dqtProfile;
+            const dqtName = dqtProfile?.matchName || dqtEv?.match_name || '';
+            const dqtQuality = dqtProfile?.qualityEstimate ?? dqtEv?.quality_estimate;
 
             const isCam = result.classification === 'CAMERA_CAPTURED' || result.verdict === 'NOT_EDITED';
             const isAiGen = result.classification === 'AI_GENERATED';
@@ -945,26 +1071,39 @@ export default function ForensicsDashboard() {
               return `f/${num.toFixed(1).replace(/\.0$/, '')}`;
             };
 
-            // Unified Device Name Detection
-            let fullDevice = 'Unknown Optical Sensor';
-            if (cameraMake || cameraModel) {
-              fullDevice = `${cameraMake || ''} ${cameraModel || ''}${deviceName ? ` (${deviceName})` : ''}`.trim();
-            } else if (isDqtHw && dqtName) {
-              fullDevice = `${dqtName} (Hardware Profile)`;
-            } else if (isCam) {
-              fullDevice = 'Authentic Physical Camera Optics';
-            } else if (isAiGen) {
-              fullDevice = 'Synthetic AI Generative Engine';
-            } else {
-              fullDevice = 'Digital Image Container';
-            }
+            const formatFileSize = (bytes?: number) => {
+              if (!bytes) return 'N/A';
+              if (bytes < 1024) return `${bytes} B`;
+              if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+              return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+            };
 
             const faceStatus = (faceEv?.evidence as any)?.status || '';
             const hasRealFaces = faceStatus === 'NATURAL_BIOMETRIC_VERIFIED';
             const isSynthFaces = faceStatus === 'SYNTHETIC_FACIAL_ARTIFACTS' || faceStatus === 'DEEPFAKE_FACE_DISCREPANCY';
 
-            const width = result.dimensions?.width || 0;
-            const height = result.dimensions?.height || 0;
+            // Accurate Device Identification — NEVER guess Samsung when EXIF is stripped!
+            let fullDevice = 'Unknown Optical Sensor';
+            let deviceSubtitle = 'Container Analyzed';
+            if (cameraMake || cameraModel) {
+              fullDevice = `${cameraMake || ''} ${cameraModel || ''}${deviceName ? ` (${deviceName})` : ''}`.trim();
+              deviceSubtitle = 'Hardware EXIF Verified';
+            } else if (hasExif) {
+              fullDevice = 'Generic Optical Sensor';
+              deviceSubtitle = 'EXIF Present (No Model Tag)';
+            } else if (isCam || hasRealFaces) {
+              fullDevice = 'Authentic Camera (EXIF Stripped)';
+              deviceSubtitle = hasRealFaces ? 'Natural Biometric Dermal Anchor' : 'Physical Sensor Optics Verified';
+            } else if (isAiGen) {
+              fullDevice = 'Synthetic AI Generative Engine';
+              deviceSubtitle = 'Pure Neural Synthesis';
+            } else {
+              fullDevice = 'Digital Image Container';
+              deviceSubtitle = 'No Camera EXIF Header';
+            }
+
+            const width = result.dimensions?.width || imgProps?.width || 0;
+            const height = result.dimensions?.height || imgProps?.height || 0;
             const mp = width && height ? ((width * height) / 1000000).toFixed(1) : null;
 
             return (
@@ -1012,12 +1151,12 @@ export default function ForensicsDashboard() {
                   </div>
 
                   <span className="self-start sm:self-auto rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-semibold text-slate-600">
-                    {hasExif ? 'EXIF HARDWARE TELEMETRY' : isDqtHw ? 'DQT HARDWARE SIGNATURE' : 'MEDIA CONTAINER AUDIT'}
+                    {hasExif ? 'EXIF HARDWARE TELEMETRY' : 'MEDIA CONTAINER AUDIT'}
                   </span>
                 </div>
 
                 {/* Primary 6-Tile Specifications Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4">
                   {/* Tile 1: Capture Device / Camera */}
                   <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs flex flex-col justify-between">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -1027,7 +1166,7 @@ export default function ForensicsDashboard() {
                       {fullDevice}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
-                      {isCam ? 'Physical Camera Profile' : isAiGen ? 'Generative Model' : 'Container'}
+                      {deviceSubtitle}
                     </div>
                   </div>
 
@@ -1049,11 +1188,11 @@ export default function ForensicsDashboard() {
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       Optical Sensor
                     </div>
-                    <div className={`my-1.5 font-bold text-xs sm:text-sm truncate ${isCam ? 'text-emerald-700' : isAiGen ? 'text-purple-700' : 'text-slate-800'}`}>
-                      {isCam ? 'Authentic CMOS Optics' : isAiGen ? 'Synthetic Lattice' : 'Digital Frame'}
+                    <div className={`my-1.5 font-bold text-xs sm:text-sm truncate ${isCam || hasRealFaces ? 'text-emerald-700' : isAiGen ? 'text-purple-700' : 'text-slate-800'}`}>
+                      {isCam || hasRealFaces ? 'Authentic CMOS Optics' : isAiGen ? 'Synthetic Lattice' : 'Digital Frame'}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
-                      {isCam ? 'Zero AI Artifacts' : isAiGen ? 'No Sensor Noise' : 'Verified'}
+                      {isCam || hasRealFaces ? 'Zero AI Artifacts' : isAiGen ? 'No Sensor Noise' : 'Verified'}
                     </div>
                   </div>
 
@@ -1085,17 +1224,39 @@ export default function ForensicsDashboard() {
                     </div>
                   </div>
 
-                  {/* Tile 6: Capture Timestamp */}
+                  {/* Tile 6: File & Color Encoding */}
                   <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white p-3.5 shadow-2xs flex flex-col justify-between">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Timestamp / Date
+                      File &amp; Encoding
                     </div>
-                    <div className="my-1.5 font-mono font-bold text-[11px] sm:text-xs text-slate-900 truncate" title={dateTime || 'Present in Container'}>
-                      {dateTime ? dateTime.slice(0, 16) : 'Container Verified'}
+                    <div className="my-1.5 font-bold text-xs sm:text-sm text-slate-900 truncate">
+                      {imgProps?.fileFormat || 'JPEG'} • {formatFileSize(suspectFile?.size || imgProps?.fileSize)}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
-                      {dateTime ? 'Hardware Clock' : 'Cryptographic Integrity'}
+                      {imgProps?.colorSpace || 'sRGB'} ({imgProps?.chromaSubsampling || '4:2:0'})
                     </div>
+                  </div>
+                </div>
+
+                {/* Secondary Specifications Row: File Details & Provenance */}
+                <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-600">
+                  <div>
+                    <span className="font-semibold text-slate-800 block">Geometry:</span>
+                    <span className="font-mono text-slate-700">{width} × {height} px ({mp ? `${mp} MP` : 'N/A'}, {imgProps?.aspectRatio || 'Auto'})</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 block">Color &amp; Depth:</span>
+                    <span className="font-mono text-slate-700">{imgProps?.bitDepth || 8}-bit • {imgProps?.colorSpace || 'sRGB'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 block">Original Date:</span>
+                    <span className="font-mono text-slate-700">{dateTime ? dateTime.slice(0, 19) : 'EXIF Stripped / Web Asset'}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 block">Quantization Match:</span>
+                    <span className="font-mono text-slate-700 truncate block" title={dqtName || 'Standard JPEG'}>
+                      {dqtName ? `${dqtName.replace(' (Hardware Profile)', '')} (Q~${dqtQuality || '95'})` : 'Standard JPEG Table'}
+                    </span>
                   </div>
                 </div>
 

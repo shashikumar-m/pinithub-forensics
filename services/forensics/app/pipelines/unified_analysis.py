@@ -787,9 +787,10 @@ def run_unified_analysis(
 
     deep_real_votes = sum([
         1 for s in (
-            univfd_score_val < 0.35,
+            univfd_score_val < 0.50,
             drct_score_val < 0.40,
-            dire_score_val < 0.35,
+            dire_score_val < 0.40,
+            (face_status == "NATURAL_BIOMETRIC_VERIFIED"),
         ) if s
     ])
     has_majority_real_consensus = (deep_real_votes >= 2) and not has_ai_provenance
@@ -810,6 +811,7 @@ def run_unified_analysis(
 
     total_pixels = h * w
     if suppress_regions:
+        composite_heat[:] = 0.0
         binary_mask[:] = 0
         manipulated_pixels = 0
         affected_area_pct = 0.0
@@ -888,6 +890,8 @@ def run_unified_analysis(
         editing_software == "Canva"
     )
 
+    has_natural_faces = (face_status == "NATURAL_BIOMETRIC_VERIFIED")
+
     # -------------------------------------------------------------------------
     # Democratic Deep Foundation Model Consensus (UnivFD, DRCT, DIRE)
     # Rule: If 2 or more independent foundation models agree, the majority consensus governs.
@@ -903,9 +907,10 @@ def run_unified_analysis(
     ])
     deep_real_votes = sum([
         1 for s in (
-            univfd_score_val < 0.35,
+            univfd_score_val < 0.50,
             drct_score_val < 0.40,
-            dire_score_val < 0.35,
+            dire_score_val < 0.40,
+            has_natural_faces,
         ) if s
     ])
 
@@ -936,7 +941,7 @@ def run_unified_analysis(
     )
 
     has_camera_hardware_exif = bool(
-        camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows")))
+        camera_make or camera_model or (software and any(k in str(software).lower() for k in ("camera", "iphone", "pixel", "samsung", "android", "xiaomi", "oneplus", "huawei", "sony", "nikon", "canon", "windows", "oppo", "vivo", "realme", "motorola", "redmi", "qualcomm", "mediatek", "infinix", "tecno", "nothing")))
     )
 
     dqt_details = all_detector_results.get("dqt_fingerprint", {}).get("details", {})
@@ -947,7 +952,7 @@ def run_unified_analysis(
 
     # Hardware DQT quantization requires strict high confidence (confidence >= 0.70 or distance <= 25.0)
     has_camera_hardware_dqt = (
-        (dqt_match_cat == "CAMERA_HARDWARE" or any(k in dqt_match_name for k in ("samsung", "apple", "iphone", "nikon", "canon", "sony", "fuji", "panasonic", "olympus", "google pixel", "camera")))
+        (dqt_match_cat == "CAMERA_HARDWARE" or any(k in dqt_match_name for k in ("samsung", "apple", "iphone", "nikon", "canon", "sony", "fuji", "panasonic", "olympus", "google pixel", "camera", "xiaomi", "oppo", "vivo")))
         and (dqt_match_conf >= 0.70 or dqt_best_dist <= 25.0)
     )
     has_verified_camera_hardware = has_camera_hardware_exif or has_camera_hardware_dqt
@@ -961,8 +966,13 @@ def run_unified_analysis(
     # An image has verified optical camera ground truth IF AND ONLY IF:
     # 1. Genuine camera hardware EXIF tags are present (Make, Model, Lens, ISO, Shutter), OR
     # 2. Hardware DQT quantization matches camera hardware with strict high confidence (conf >= 0.70 or dist <= 25.0), OR
-    # 3. Verified biological human dermal facial pores and boundary continuity are confirmed on human face(s).
-    has_verified_camera_base = has_verified_camera_hardware or (has_natural_faces and not has_ai_provenance)
+    # 3. Verified biological human dermal facial pores and boundary continuity are confirmed on human face(s), OR
+    # 4. Multi-modal consensus across foundation models confirms authentic camera capture without AI provenance.
+    has_verified_camera_base = (
+        has_verified_camera_hardware
+        or (has_natural_faces and not has_ai_provenance)
+        or (has_majority_real_consensus and drct_score_val < 0.35 and univfd_score_val < 0.45 and not has_ai_provenance)
+    )
 
     # TIER 2: DEEP GENERATIVE DIFFUSION & AI TRUTH
     # Diffusion manifold confirmation: When deep diffusion models (DIRE / UnivFD) confirm the image resides
@@ -972,18 +982,19 @@ def run_unified_analysis(
 
     is_diffusion_manifold = (
         (
-            (dire_score_val >= 0.75 and (univfd_score_val >= 0.50 or univfd_patch_max >= 0.70))
-            or (dire_score_val >= 0.90 and resampling_score_val >= 0.80 and not has_natural_faces and not has_majority_real_consensus)
-            or (univfd_score_val >= 0.75)
+            (dire_score_val >= 0.75 and (univfd_score_val >= 0.55 or univfd_patch_max >= 0.70))
+            or (dire_score_val >= 0.85 and drct_score_val >= 0.50)
+            or (dire_score_val >= 0.95 and deep_ai_votes >= 2)
+            or (univfd_score_val >= 0.75 and drct_score_val >= 0.50)
         )
         and not has_verified_camera_hardware
-        and not (has_natural_faces and has_majority_real_consensus)
+        and not (has_natural_faces and not has_ai_provenance)
     )
 
     # An image is identified as FULL AI GENERATED when:
     # 1. AI Provenance metadata confirms generation (Canva, Midjourney, DALL-E, Google Imagen, etc.)
     # 2. Synthetic facial biometrics (deepfake, AI facial synthesis)
-    # 3. Synthetic generative lattice from latent diffusion VAE upsamplers
+    # 3. Synthetic generative lattice from latent diffusion VAE upsamplers corroborated by deep detectors
     # 4. Confirmed diffusion manifold (DIRE + UnivFD patch / Resampling) without camera hardware EXIF
     # 5. Overwhelming diffusion reconstruction trace (dire_score_val >= 0.80) with NO camera hardware base
     # 6. UnivFD universal fake detector (univfd_score_val >= 0.65) with NO camera hardware base
@@ -992,16 +1003,21 @@ def run_unified_analysis(
     is_deep_ai_generated = (
         has_ai_provenance
         or face_status in ("SYNTHETIC_FACIAL_ARTIFACTS", "DEEPFAKE_FACE_DISCREPANCY")
-        or cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"
+        or (
+            cfa_status == "SYNTHETIC_GENERATIVE_LATTICE"
+            and (deep_ai_votes >= 1 or dire_score_val >= 0.70)
+            and not has_verified_camera_hardware
+            and not (has_natural_faces and not has_ai_provenance)
+        )
         or is_diffusion_manifold
         or (
             not has_verified_camera_base
+            and not (has_natural_faces and not has_ai_provenance)
+            and not (has_majority_real_consensus and drct_score_val < 0.35 and univfd_score_val < 0.45)
             and (
-                dire_score_val >= 0.80
-                or univfd_score_val >= 0.65
-                or drct_score_val >= 0.60
-                or (dire_score_val >= 0.60 and resampling_score_val >= 0.80)
-                or deep_ai_votes >= 2
+                deep_ai_votes >= 2
+                or univfd_score_val >= 0.55
+                or (dire_score_val >= 0.95 and not has_majority_real_consensus)
             )
         )
     )
@@ -1072,7 +1088,7 @@ def run_unified_analysis(
                 ai_score = 0.88
         else:
             classification = "EDITED"
-    elif has_verified_camera_base and not has_classical_corroboration and len(copy_points) == 0:
+    elif (has_verified_camera_base or has_majority_real_consensus) and not has_classical_corroboration and len(copy_points) == 0:
         # Verified authentic camera capture with zero tampering: 100% Real Camera Photo
         classification = "CAMERA_CAPTURED"
         verdict = "NOT_EDITED"
@@ -1186,8 +1202,12 @@ def run_unified_analysis(
     elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
     # Generate PNG Data URLs for immediate frontend rendering
-    heatmap_data_url = _array_to_data_url(composite_heat, is_heatmap=True)
-    mask_data_url = _array_to_data_url(binary_mask)
+    if suppress_regions or classification == "CAMERA_CAPTURED" or (not has_reference and manipulated_pixels == 0 and not has_manual_tamper_evidence):
+        heatmap_data_url = None
+        mask_data_url = None
+    else:
+        heatmap_data_url = _array_to_data_url(composite_heat, is_heatmap=True)
+        mask_data_url = _array_to_data_url(binary_mask)
 
     ai_label = (
         "AI_GENERATED" if classification == "AI_GENERATED"
@@ -1241,6 +1261,12 @@ def run_unified_analysis(
         final_call_title = "INCONCLUSIVE"
         final_call_desc = "Signals are inconclusive or insufficient evidence found."
 
+    meta_chars = raw_details.get("characteristics", {}) if isinstance(raw_details.get("characteristics"), dict) else {}
+    jpeg_info = meta_chars.get("jpeg", {}) if isinstance(meta_chars.get("jpeg"), dict) else {}
+    aspect_w = meta_chars.get("aspect_ratio_w")
+    aspect_h = meta_chars.get("aspect_ratio_h")
+    aspect_str = f"{aspect_w}:{aspect_h}" if aspect_w and aspect_h else None
+
     return sanitize_for_json({
         "status": "DONE",
         "mode": mode,
@@ -1261,6 +1287,26 @@ def run_unified_analysis(
         "dimensions": {
             "width": orig_w,
             "height": orig_h,
+        },
+        "imageProperties": {
+            "fileSize": len(suspect_bytes),
+            "fileFormat": "PNG" if suspect_bytes.startswith(b"\x89PNG") else "WEBP" if (suspect_bytes.startswith(b"RIFF") and b"WEBP" in suspect_bytes[:16]) else "JPEG",
+            "width": orig_w,
+            "height": orig_h,
+            "aspectRatio": aspect_str,
+            "megapixels": round((orig_w * orig_h) / 1_000_000, 2),
+            "colorSpace": meta_chars.get("color_space") or "sRGB",
+            "bitDepth": meta_chars.get("bit_depth") or 8,
+            "channels": meta_chars.get("channels") or 3,
+            "chromaSubsampling": jpeg_info.get("sampling_factors") or "4:2:0",
+            "isProgressive": bool(jpeg_info.get("progressive", False)),
+            "estimatedQuality": jpeg_info.get("quality_estimate") or dqt_details.get("quality_estimate"),
+        },
+        "dqtProfile": {
+            "matchName": dqt_match_name or None,
+            "matchCategory": dqt_match_cat or None,
+            "qualityEstimate": dqt_details.get("quality_estimate"),
+            "bestDistance": dqt_best_dist if dqt_best_dist != 999.0 else None,
         },
         "regions": regions,
         "crop": crop_info,

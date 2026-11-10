@@ -61,7 +61,22 @@ def analyze_face_biometrics(img_bgr: np.ndarray) -> FaceBiometricResult:
     # Load Haar cascade
     cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(cascade_path)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(40, 40))
+    raw_faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(40, 40))
+
+    # Biological Skin Chrominance Verification:
+    # A true human face in optical photography must contain authentic human skin tones
+    # bounded in YCrCb space: Cr in [130, 175], Cb in [75, 130].
+    # Reject false Haar cascade alarms on background objects, foliage, or cyan/green textures.
+    faces = []
+    ycrcb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2YCrCb)
+    for (fx, fy, fw, fh) in raw_faces:
+        roi_ycrcb = ycrcb[fy : fy + fh, fx : fx + fw]
+        cr = roi_ycrcb[:, :, 1]
+        cb = roi_ycrcb[:, :, 2]
+        skin_mask = (cr >= 130) & (cr <= 175) & (cb >= 75) & (cb <= 130)
+        skin_ratio = float(np.mean(skin_mask))
+        if skin_ratio >= 0.20:
+            faces.append((fx, fy, fw, fh))
 
     if len(faces) == 0:
         return FaceBiometricResult(
@@ -72,7 +87,7 @@ def analyze_face_biometrics(img_bgr: np.ndarray) -> FaceBiometricResult:
             bilateral_cheek_symmetry=1.0,
             boundary_discontinuity=0.0,
             teeth_periodicity=None,
-            evidence=["No frontal faces detected in image frame."],
+            evidence=["No verified human faces detected in image frame."],
         )
 
     # Analyze primary (largest) face
